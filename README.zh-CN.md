@@ -1,3 +1,8 @@
+../bin/helm-gitops checkout feature/foo
+../bin/helm-gitops commit -m "fix: foo"
+
+./bin/helm-gitops create test
+
 go build -o bin/helm-gitops .
 
 - 创建
