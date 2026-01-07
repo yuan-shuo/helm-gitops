@@ -14,9 +14,14 @@ var gitIgnore string
 var ciTestYAML string
 
 // 把 embed 内容写进 chart
-func writeSkel(root string) error {
+func writeSkel(root string, withActions bool) error {
+	// 必写：gitignore
 	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnore, 0644); err != nil {
 		return err
 	}
-	return utils.WriteFile(filepath.Join(root, ".github", "workflows", "ci-test.yaml"), ciTestYAML, 0644)
+	// 可选：ci-test.yaml
+	if withActions {
+		return utils.WriteFile(filepath.Join(root, ".github", "workflows", "ci-test.yaml"), ciTestYAML, 0644)
+	}
+	return nil
 }

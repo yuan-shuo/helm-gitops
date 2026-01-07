@@ -15,14 +15,14 @@ helm gitops checkout feature/foo
 
 # ...常规编写chart
 
-# 3.提交代码: 自动执行版本号增加(可选)并commit, 以及推送(可选)
+# 3.提交代码: 自动执commit, 以及推送(可选)
 helm gitops commit -m "fix: foo"
 
 # 4.本地检查: 自动执行 helm lint + unittest
 helm gitops lint
 
-# 5.打标签(git tag): 自动基于Chart的版本号对当前内容打标签, 以及推送(可选)
-helm gitops tag
+# 5.推送代码: 先确认当前分支不是主分支, 随后lint检查, 最后执行push
+helm gitops push
 ```
 
 ## 安装
@@ -33,21 +33,12 @@ helm gitops tag
 
 
 
-../bin/helm-gitops checkout feature/foo
-../bin/helm-gitops commit -m "fix: foo"
 
-./bin/helm-gitops create test
-
-go build -o bin/helm-gitops .
-
-- 创建
-  create
-- 进入开发分支
-  checkout
-- // 编写代码 ...
-- 本地检查
-  lint
-- bump 提交
-  commit
-- 自动tag
-  tag
+go build -o bin/gitops .
+./bin/gitops create test
+cd test
+../bin/gitops checkout feature/foo
+../bin/gitops commit -m "fix: foo"
+git remote add origin https://gitee.com/yuan-shuo188/helm-test1.git && git push -u origin main
+../bin/gitops push
+进入 feature/foo 分支gitee页面, 提交PR, 审核+测试, 合并到main分支
