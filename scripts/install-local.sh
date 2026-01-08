@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# ./scripts/install-local.sh
+
+# 构建gitops二进制文件
+go build -o bin/gitops .
+
+# 创建测试项目
+./bin/gitops create test-nor
+./bin/gitops create test-act --actions
+
+# 进入测试项目目录
+cd test-act
+
+# 链接远程测试仓库
+git remote add origin https://gitee.com/yuan-shuo188/helm-test1.git
+git push -u origin main
+
+# 测试checkout创建分支功能
+../bin/gitops checkout feature/test1
+
+# 假设修改chart
+touch ./templates/new1.yml
+
+# 测试lint本地检查功能
+../bin/gitops lint
+
+# 测试commit基础功能: 本地提交
+../bin/gitops commit -m "fix:foo1"
+
+# 测试push基础功能: 推送本地分支到远程仓库
+../bin/gitops push
+
+# 假设修改chart
+touch ./templates/new2.yml
+
+# 测试commit高级功能: 自动push + 创建PRcommit标记, gitee显示提交结果 -> fix:foo2 [create-pr]
+../bin/gitops commit -m "fix:foo2" --push --pr
+
+# 测试checkout同步主分支功能: 从主分支拉取最新代码 + 基于主分支创建新分支
+../bin/gitops checkout feature/test2 -s
+
+# 测试打印版本功能
+../bin/gitops version
+
+# 测试版本升级功能: 升级patch版本
+../bin/gitops version --bump patch # 版本号自增有个问题：
+# 就是他不会回到主分支，最终正常效果是无论我执行多少次，只要没推送成功那版本号就始终在原main上+1而不是反复+1越变越大
+
+# 把远端已经不存在的分支从本地 remote-tracking 里去掉(未测试)
+git fetch --prune # 明显缺少本地分支清理功能，遍历，然后一个一个询问y/N是否删除
+
+
+
+
+
+

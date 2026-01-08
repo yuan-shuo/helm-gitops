@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/yuan-shuo/helm-gitops/pkg/git"
 	"github.com/yuan-shuo/helm-gitops/pkg/helm"
 )
 
@@ -12,7 +13,7 @@ var bumpLevel string
 func init() {
 	versionCmd := newVersionCmd()
 	versionCmd.Flags().StringVar(&bumpLevel, "bump", "", "bump level: patch|minor|major (required)")
-	_ = versionCmd.MarkFlagRequired("bump")
+	// _ = versionCmd.MarkFlagRequired("bump")
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -60,7 +61,31 @@ func runGraduate(level string) error {
 	}
 
 	// 3. commit + push + PR（复用 commit 命令）
-	commitCmd := newCommitCmd()
-	commitCmd.SetArgs([]string{"-m", "bump: v" + newVer, "--pr", "--push"})
-	return commitCmd.Execute()
+	// 1.保护分支检测
+	if cur, err := git.CurrentBranch(); err == nil && git.IsProtected(cur) {
+		return git.ErrProtected(cur)
+	}
+	// 2.添加到缓存区
+	if err := git.Add("."); err != nil {
+		return err
+	}
+	// 3.提交带有PR标记的代码
+	if err := git.Commit(git.AddPRMarkToCommitMsg("bump: v" + newVer)); err != nil {
+		return err
+	}
+	// 4.语法检查
+	if err := helm.Lint(); err != nil {
+		return fmt.Errorf("lint check failed, push aborted: %w", err)
+	}
+	// 5.提交更改
+	return git.PushHead()
+
+	// commitCmd := newCommitCmd()
+	// commitCmd.SetArgs([]string{
+	// 	"-m", "bump: v" + newVer,
+	// 	"--push",
+	// 	"--pr",
+	// })
+	// return commitCmd.Execute()
+
 }

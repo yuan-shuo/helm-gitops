@@ -8,29 +8,31 @@ import (
 )
 
 func Checkout(name string, syncMain bool) error {
-	if isProtected(name) {
-		return fmt.Errorf("refusing to create protected branch %q", name)
-	}
-
-	mainBranch, err := detectMain()
-	if err != nil {
-		return err
-	}
 
 	// 若用户想同步主分支
 	if syncMain {
+		mainBranch, err := detectMain()
+		if err != nil {
+			return err
+		}
 		ok, err := confirm(fmt.Sprintf("Pull latest %s before creating branch %q? (y/N): ", mainBranch, name))
 		if err != nil {
 			return err
 		}
+
 		if ok {
-			fmt.Printf("pulling origin/%s...\n", mainBranch)
-			if err := run("", "git", "fetch", "origin", mainBranch); err != nil {
+			fmt.Printf("switching to latest %s...(switch to main and pull main:latest)\n", mainBranch)
+			// 1. 跳到主分支
+			if err := run("", "git", "switch", mainBranch); err != nil {
 				return err
 			}
-			if err := run("", "git", "pull", "origin", mainBranch); err != nil {
+			// 2. 拉最新（fast-forward only，拒绝 merge）
+			if err := run("", "git", "pull", "--ff-only", "origin", mainBranch); err != nil {
 				return err
 			}
+			// 3. 从最新主分支创建新分支
+			fmt.Printf("creating %q from latest %s...\n", name, mainBranch)
+			return run("", "git", "switch", "-c", name)
 		}
 	}
 
@@ -75,12 +77,12 @@ func branchExists(name string) (bool, error) {
 	return strings.TrimSpace(string(out)) != "", nil
 }
 
-func isProtected(b string) bool {
-	protected := []string{"master", "main"}
-	for _, p := range protected {
-		if b == p {
-			return true
-		}
-	}
-	return false
-}
+// func isProtected(b string) bool {
+// 	protected := []string{"master", "main"}
+// 	for _, p := range protected {
+// 		if b == p {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }

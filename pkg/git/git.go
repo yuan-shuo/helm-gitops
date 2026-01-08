@@ -22,6 +22,10 @@ func Commit(msg string) error {
 	return cmd.Run()
 }
 
+func AddPRMarkToCommitMsg(msg string) string {
+	return fmt.Sprintf("%s [create-pr]", msg)
+}
+
 func PushHead() error {
 	cmd := exec.Command("git", "push", "origin", "HEAD")
 	cmd.Stdout, cmd.Stderr = nil, nil

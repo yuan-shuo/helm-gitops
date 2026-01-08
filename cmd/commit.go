@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
+	"github.com/yuan-shuo/helm-gitops/pkg/helm"
 )
 
 var (
@@ -43,12 +44,16 @@ func newCommitCmd() *cobra.Command {
 			}
 			// 1. 可选追加
 			if createPR {
-				commitMsg += " [create-pr]"
+				commitMsg = git.AddPRMarkToCommitMsg(commitMsg)
 			}
 			if err := git.Commit(commitMsg); err != nil {
 				return err
 			}
 			if doPush {
+				// 0. 强制 lint
+				if err := helm.Lint(); err != nil {
+					return fmt.Errorf("lint check failed, push aborted: %w", err)
+				}
 				return git.PushHead()
 			}
 			return nil

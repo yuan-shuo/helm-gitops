@@ -9,7 +9,7 @@
 ```bash
 # 1. 创建：在原 helm chart 基础上添加 GitOps 骨架
 helm gitops create test
-helm gitops create demo --actions        # 同时生成 .github/workflows/ci-test.yaml
+helm gitops create test --actions        # 同时生成 .github/workflows/<>.yaml
 
 
 # 2. 切换分支：自动进入开发分支（可选同步主分支）
