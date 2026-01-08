@@ -42,6 +42,15 @@ helm gitops version --bump patch   # 创建 release 分支并提交 PR`,
 
 // runGraduate 复用现有子命令逻辑
 func runGraduate(level string) error {
+	// 确保能获得当前真正的版本号
+	mainBranch, err := git.DetectMain()
+	if err != nil {
+		return err
+	}
+	if err := git.GoToMainAndPullLatest(mainBranch); err != nil {
+		return err
+	}
+
 	oldVer, err := helm.GetVersion()
 	if err != nil {
 		return err
@@ -50,13 +59,19 @@ func runGraduate(level string) error {
 
 	// 1. 创建 release 分支（复用 checkout）
 	releaseBranch := "release/v" + newVer
-	checkoutCmd := newCheckoutCmd()
-	if err := checkoutCmd.RunE(nil, []string{releaseBranch}); err != nil {
+	// checkoutCmd := newCheckoutCmd()
+	// if err := checkoutCmd.RunE(nil, []string{releaseBranch}); err != nil {
+	// 	return err
+	// }
+	// if err := git.Checkout(releaseBranch, true); err != nil {
+	// 	return err
+	// }
+	if err := git.SwitchtoBranchByAutoCreate(releaseBranch); err != nil {
 		return err
 	}
 
 	// 2. 改版本号（复用 BumpVersionAndSave）
-	if _, err := helm.BumpVersionAndSave(level); err != nil {
+	if _, err := helm.BumpVersionAndSave(newVer); err != nil {
 		return err
 	}
 
@@ -78,14 +93,16 @@ func runGraduate(level string) error {
 		return fmt.Errorf("lint check failed, push aborted: %w", err)
 	}
 	// 5.提交更改
-	return git.PushHead()
-
-	// commitCmd := newCommitCmd()
-	// commitCmd.SetArgs([]string{
-	// 	"-m", "bump: v" + newVer,
-	// 	"--push",
-	// 	"--pr",
-	// })
-	// return commitCmd.Execute()
-
+	// return git.PushHead()
+	if err := git.PushHead(); err != nil {
+		return err
+	}
+	// 任务完成提示
+	fmt.Printf("created release branch %q and pushed to remote successfully\n", releaseBranch)
+	// 询问是否清理
+	err = git.DeleteBranch(releaseBranch)
+	if err != nil {
+		return err
+	}
+	return nil
 }

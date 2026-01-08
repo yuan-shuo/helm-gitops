@@ -38,12 +38,7 @@ func BumpString(oldVer, level string) string {
 }
 
 // BumpVersionAndSave 按 level +1 并写回 Chart.yaml
-func BumpVersionAndSave(level string) (string, error) {
-	old, err := GetVersion()
-	if err != nil {
-		return "", err
-	}
-	newVer := BumpString(old, level)
+func BumpVersionAndSave(newVer string) (string, error) {
 	body, err := os.ReadFile("Chart.yaml")
 	if err != nil {
 		return "", err

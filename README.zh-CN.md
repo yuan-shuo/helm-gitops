@@ -34,7 +34,7 @@ helm gitops push --remote ci                          # 推送到名为 ci 的�
 
 # 6. 版本管理：读版本号 & 一键毕业发布
 helm gitops version                                   # 打印当前 Chart 版本
-helm gitops version --bump patch|minor|major                      # 一键毕业：创建 release/vx.y.z 分支 → 改版本 → commit → push → PR
+helm gitops version --bump patch|minor|major                      # 一键毕业：创建 release/vx.y.z 分支 → 改版本 → commit → push(成功后会询问是否自动清理此分支) → PR
 ```
 
 ## 安装

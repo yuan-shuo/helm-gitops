@@ -43,9 +43,10 @@ touch ./templates/new2.yml
 # 测试打印版本功能
 ../bin/gitops version
 
-# 测试版本升级功能: 升级patch版本
-../bin/gitops version --bump patch # 版本号自增有个问题：
-# 就是他不会回到主分支，最终正常效果是无论我执行多少次，只要没推送成功那版本号就始终在原main上+1而不是反复+1越变越大
+# 测试版本升级功能: 升级patch|minor|major版本
+../bin/gitops version --bump patch
+../bin/gitops version --bump minor
+../bin/gitops version --bump major
 
 # 把远端已经不存在的分支从本地 remote-tracking 里去掉(未测试)
 git fetch --prune # 明显缺少本地分支清理功能，遍历，然后一个一个询问y/N是否删除
