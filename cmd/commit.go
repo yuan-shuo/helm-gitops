@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
 )
@@ -27,6 +29,11 @@ func newCommitCmd() *cobra.Command {
 			// 0. 保护分支检测
 			if cur, err := git.CurrentBranch(); err == nil && git.IsProtected(cur) {
 				return git.ErrProtected(cur)
+			}
+
+			// 0. 先同步
+			if err := git.PullRebase(); err != nil {
+				return fmt.Errorf("cannot pull latest changes: %w", err)
 			}
 
 			if err := git.Add("."); err != nil {

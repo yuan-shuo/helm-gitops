@@ -7,25 +7,64 @@ import (
 	"strings"
 )
 
-func Checkout(name string) error {
-	// 0. 保护分支检测（可选）
+func Checkout(name string, syncMain bool) error {
 	if isProtected(name) {
 		return fmt.Errorf("refusing to create protected branch %q", name)
 	}
 
-	// 1. 看分支是否存在
-	exists, err := branchExists(name)
+	mainBranch, err := detectMain()
 	if err != nil {
 		return err
 	}
 
-	// 2. 切换 or 创建
+	// 若用户想同步主分支
+	if syncMain {
+		ok, err := confirm(fmt.Sprintf("Pull latest %s before creating branch %q? (y/N): ", mainBranch, name))
+		if err != nil {
+			return err
+		}
+		if ok {
+			fmt.Printf("pulling origin/%s...\n", mainBranch)
+			if err := run("", "git", "fetch", "origin", mainBranch); err != nil {
+				return err
+			}
+			if err := run("", "git", "pull", "origin", mainBranch); err != nil {
+				return err
+			}
+		}
+	}
+
+	// 常规切换/创建
+	exists, err := branchExists(name)
+	if err != nil {
+		return err
+	}
 	if exists {
-		fmt.Printf("branch %q exists, switching\n", name)
-		return run("", "git", "switch", name) // dir="" 表示当前目录
+		fmt.Printf("switching to %q\n", name)
+		return run("", "git", "switch", name)
 	}
 	fmt.Printf("creating and switching to %q\n", name)
-	return run("", "git", "switch", "-c", name) // dir="" 表示当前目录
+	return run("", "git", "switch", "-c", name)
+}
+
+/* 辅助函数 */
+func detectMain() (string, error) {
+	for _, b := range []string{"main", "master"} {
+		if err := run("", "git", "rev-parse", "--verify", "origin/"+b); err == nil {
+			return b, nil
+		}
+	}
+	return "", fmt.Errorf("no main/master branch found on origin")
+}
+
+func confirm(prompt string) (bool, error) {
+	fmt.Print(prompt)
+	var ans string
+	_, err := fmt.Scanln(&ans)
+	if err != nil && err.Error() != "unexpected newline" {
+		return false, err
+	}
+	return strings.ToLower(ans) == "y", nil
 }
 
 func branchExists(name string) (bool, error) {

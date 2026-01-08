@@ -28,6 +28,10 @@ func newPushCmd() *cobra.Command {
 			if git.IsProtected(cur) {
 				return git.ErrProtected(cur)
 			}
+			// 0. 先同步
+			if err := git.PullRebase(); err != nil {
+				return fmt.Errorf("cannot pull latest changes: %w", err)
+			}
 			// 0. 强制 lint
 			if err := helm.Lint(); err != nil {
 				return fmt.Errorf("lint check failed, push aborted: %w", err)
