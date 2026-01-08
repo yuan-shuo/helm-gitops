@@ -10,12 +10,14 @@ import (
 var (
 	doPush    bool
 	commitMsg string
+	createPR  bool
 )
 
 func init() {
 	commitCmd := newCommitCmd()
 	commitCmd.Flags().StringVarP(&commitMsg, "message", "m", "", "commit message (required)")
 	_ = commitCmd.MarkFlagRequired("message")
+	commitCmd.Flags().BoolVar(&createPR, "pr", false, "append '[create-pr]' to message for auto PR trigger")
 	commitCmd.Flags().BoolVarP(&doPush, "push", "p", false, "push after commit")
 	rootCmd.AddCommand(commitCmd)
 }
@@ -38,6 +40,10 @@ func newCommitCmd() *cobra.Command {
 
 			if err := git.Add("."); err != nil {
 				return err
+			}
+			// 1. 可选追加
+			if createPR {
+				commitMsg += " [create-pr]"
 			}
 			if err := git.Commit(commitMsg); err != nil {
 				return err

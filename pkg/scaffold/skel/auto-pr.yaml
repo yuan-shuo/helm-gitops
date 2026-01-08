@@ -1,0 +1,69 @@
+# .github/workflows/auto-pr.yaml
+name: auto-pr
+
+on:
+  workflow_dispatch:          # 纯手动按钮触发
+  push:                       # 可选：commit 里带口令时自动触发
+    branches-ignore: [main, master]
+    paths:
+      - 'Chart.yaml'
+      - 'values.yaml'
+      - 'templates/**'
+
+concurrency:
+  group: auto-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 探测主分支叫 main 还是 master
+      - name: Detect main branch
+        id: detect-main
+        run: |
+          if git rev-parse --verify origin/main >/dev/null 2>&1; then
+            echo "branch=main" >> $GITHUB_OUTPUT
+          elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+            echo "branch=master" >> $GITHUB_OUTPUT
+          else
+            echo "branch=" >> $GITHUB_OUTPUT
+          fi
+
+      # 手动模式直接放行；push 模式需要 commit 口令
+      - name: Check trigger mode
+        id: chk
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif contains(github.event.head_commit.message, '[create-pr]'); then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: |
+          steps.detect-main.outputs.branch != '' &&
+          steps.chk.outputs.proceed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref_name }}
+          base: ${{ steps.detect-main.outputs.branch }}
+          title: "Auto PR: ${{ github.ref_name }}"
+          body: |
+            This PR was automatically created via `auto-pr` workflow.
+
+            **Commit:** ${{ github.sha }}  
+            **Author:** ${{ github.actor }}
+          labels: automated
+          draft: false

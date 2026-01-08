@@ -1,7 +1,7 @@
 name: ci-test
 
 on:
-  pull_request:
+  push:
     paths:
       - 'Chart.yaml'
       - 'values.yaml'
@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: azure/setup-helm@v4
         with:

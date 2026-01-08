@@ -7,22 +7,34 @@
 相对于常规自行创建helm chart，随后在内部粘贴.gitignore等文件，自行修改创建分支、提交、版本号，手动编写argocd所需的yaml，此扩展提供了较为舒适的简化方案：
 
 ```bash
-# 1.创建: 在原 helm chart 基础上添加了.gitignore, 已经初始化后的.git仓库, .github/workflow/ci-test.yaml等文件
+# 1. 创建：在原 helm chart 基础上添加 GitOps 骨架
 helm gitops create test
+helm gitops create demo --actions        # 同时生成 .github/workflows/ci-test.yaml
 
-# 2.切换分支: 自动执行checkout进入一个开发分支
+
+# 2. 切换分支：自动进入开发分支（可选同步主分支）
 helm gitops checkout feature/foo
+helm gitops checkout hotfix/bar -s       # 先 pull origin/main 再创建分支
 
-# ...常规编写chart
 
-# 3.提交代码: 自动执commit, 以及推送(可选)
-helm gitops commit -m "fix: foo"
+# 3. 提交代码：add + commit + 可选 push & 自动 PR
+helm gitops commit -m "fix: foo"                    # 本地提交
+helm gitops commit -m "feat: xxx" --push            # 提交并推送
+helm gitops commit -m "ci: update" --pr --push      # 提交 + 推送 + 自动提 PR（含 [create-pr] commit 标记）
 
-# 4.本地检查: 自动执行 helm lint + unittest
+
+# 4. 本地检查：helm lint + helm unittest
 helm gitops lint
 
-# 5.推送代码: 先确认当前分支不是主分支, 随后lint检查, 最后执行push
-helm gitops push
+
+# 5. 推送代码：lint → push（保护分支拦截）
+helm gitops push                                      # 推送到 origin/当前分支
+helm gitops push --remote ci                          # 推送到名为 ci 的远程仓库
+
+
+# 6. 版本管理：读版本号 & 一键毕业发布
+helm gitops version                                   # 打印当前 Chart 版本
+helm gitops version --bump patch|minor|major                      # 一键毕业：创建 release/vx.y.z 分支 → 改版本 → commit → push → PR
 ```
 
 ## 安装
