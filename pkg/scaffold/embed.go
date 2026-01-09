@@ -3,6 +3,7 @@ package scaffold
 import (
 	_ "embed"
 	"path/filepath"
+	"strings"
 
 	"github.com/yuan-shuo/helm-gitops/pkg/utils"
 )
@@ -10,32 +11,41 @@ import (
 //go:embed skel/gitignore
 var gitIgnore string
 
-//go:embed skel/ci-test.yaml
-var ciTestYAML string
+//go:embed skel/auto-test-pr.yaml
+var autoTestPrYAML string
 
-//go:embed skel/auto-pr.yaml
-var autoPrYAML string
+//go:embed skel/auto-tag.yaml
+var autoTagYAML string
+
+// //go:embed skel/ci-test.yaml
+// var ciTestYAML string
+
+// //go:embed skel/auto-pr.yaml
+// var autoPrYAML string
 
 // 把 embed 内容写进 chart
-func writeSkel(root string, withActions bool) error {
+func writeSkel(root string, withActions bool, initCommitMessage string) error {
 	// 必写：gitignore
 	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnore, 0644); err != nil {
 		return err
 	}
 	// 可选：actions
 	if withActions {
-		// 可选：ci-test.yaml
-		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "ci-test.yaml"), ciTestYAML, 0644); err != nil {
+		// 替换占位符
+		workflowContent := strings.ReplaceAll(autoTestPrYAML, "{{INIT_COMMIT_MESSAGE}}", initCommitMessage)
+
+		// auto-test-pr.yaml
+		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "auto-test-pr.yaml"), workflowContent, 0644); err != nil {
 			return err
 		}
-		// 可选：auto-pr.yaml
-		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "auto-pr.yaml"), autoPrYAML, 0644); err != nil {
-			return err
-		}
-		// 可选：auto-tag.yaml
-		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "auto-tag.yaml"), autoPrYAML, 0644); err != nil {
+		// auto-tag.yaml
+		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "auto-tag.yaml"), autoTagYAML, 0644); err != nil {
 			return err
 		}
 	}
 	return nil
 }
+
+// func writeToActionsDir(root string, dest string, content string) error {
+// 	return utils.WriteFile(filepath.Join(root, ".github", "workflows", dest), content, 0644)
+// }

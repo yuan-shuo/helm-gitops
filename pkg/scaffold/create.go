@@ -9,7 +9,7 @@ import (
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
 )
 
-func Create(name string, withActions bool) error {
+func Create(name string, withActions bool, initCommitMessage string) error {
 	// 1. helm create
 	if err := execCommand("helm", "create", name); err != nil {
 		return fmt.Errorf("helm create failed: %w", err)
@@ -17,12 +17,12 @@ func Create(name string, withActions bool) error {
 	root := filepath.Join(".", name)
 
 	// 2. 写骨架
-	if err := writeSkel(root, withActions); err != nil {
+	if err := writeSkel(root, withActions, initCommitMessage); err != nil {
 		return err
 	}
 
 	// 3. git init
-	if err := git.Init(root); err != nil {
+	if err := git.Init(root, initCommitMessage); err != nil {
 		fmt.Println("warning: git init failed:", err)
 	} else {
 		fmt.Printf("✅  Chart %q created with GitOps scaffold & initial commit.\n", name)

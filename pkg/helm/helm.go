@@ -16,7 +16,11 @@ func Lint() error {
 	fmt.Println("running helm unittest...")
 	if err := execCommand("helm", "unittest", "."); err != nil {
 		if _, err2 := exec.LookPath("helm-unittest"); err2 != nil {
-			return fmt.Errorf("helm unittest not found; install with: helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false")
+			fmt.Println(`
+				helm-unittest plugin not found, skip unittest; 
+				install with: helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false
+				`)
+			return nil
 		}
 		return fmt.Errorf("helm unittest failed: %w", err)
 	}

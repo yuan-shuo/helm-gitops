@@ -8,11 +8,11 @@ import (
 	"github.com/yuan-shuo/helm-gitops/pkg/helm"
 )
 
-var pushRemote string
+// var pushRemote string
 
 func init() {
 	pushCmd := newPushCmd()
-	pushCmd.Flags().StringVar(&pushRemote, "remote", "origin", "remote name to push")
+	// pushCmd.Flags().StringVar(&pushRemote, "remote", "origin", "remote name to push")
 	rootCmd.AddCommand(pushCmd)
 }
 
@@ -29,14 +29,14 @@ func newPushCmd() *cobra.Command {
 				return git.ErrProtected(cur)
 			}
 			// 0. 先同步
-			if err := git.PullRebase(); err != nil {
-				return fmt.Errorf("cannot pull latest changes: %w", err)
-			}
+			// if err := git.PullRebase(); err != nil {
+			// 	return fmt.Errorf("cannot pull latest changes: %w", err)
+			// }
 			// 0. 强制 lint
 			if err := helm.Lint(); err != nil {
 				return fmt.Errorf("lint check failed, push aborted: %w", err)
 			}
-			return git.PushToRemote(pushRemote, cur)
+			return git.PushHead()
 		},
 	}
 }

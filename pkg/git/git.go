@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -27,20 +28,20 @@ func AddPRMarkToCommitMsg(msg string) string {
 }
 
 func PushHead() error {
-	cmd := exec.Command("git", "push", "origin", "HEAD")
-	cmd.Stdout, cmd.Stderr = nil, nil
+	cmd := exec.Command("git", "push", "--set-upstream", "origin", "HEAD")
+	cmd.Stdout, cmd.Stderr = nil, os.Stderr
 	return cmd.Run()
 }
 
 // Init 在 dir 执行 git init + 初始 commit
-func Init(dir string) error {
+func Init(dir string, initCommitMessage string) error {
 	if err := run(dir, "git", "init"); err != nil {
 		return err
 	}
 	if err := run(dir, "git", "add", "."); err != nil {
 		return err
 	}
-	return run(dir, "git", "commit", "-m", "helm gitops chart init")
+	return run(dir, "git", "commit", "-m", initCommitMessage)
 }
 
 func run(dir string, name string, arg ...string) error {

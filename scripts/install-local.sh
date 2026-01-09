@@ -13,14 +13,20 @@ go build -o bin/gitops .
 cd test-act
 
 # 链接远程测试仓库
+
+## gitee/no-action
 git remote add origin https://gitee.com/yuan-shuo188/helm-test1.git
+
+## github-with-action
+git remote add origin https://github.com/yuan-shuo/helmci-test1.git
+
 git push -u origin main
 
 # 测试checkout创建分支功能
 ../bin/gitops checkout feature/test1
 
 # 假设修改chart
-touch ./templates/new1.yml
+echo 'test file new1' > ./templates/new1.txt
 
 # 测试lint本地检查功能
 ../bin/gitops lint
@@ -31,14 +37,14 @@ touch ./templates/new1.yml
 # 测试push基础功能: 推送本地分支到远程仓库
 ../bin/gitops push
 
+# 测试checkout同步主分支功能: 从主分支拉取最新代码 + 基于主分支创建新分支
+../bin/gitops checkout feature/test2 -s
+
 # 假设修改chart
-touch ./templates/new2.yml
+echo '# test file new2' >> ./templates/service.yaml
 
 # 测试commit高级功能: 自动push + 创建PRcommit标记, gitee显示提交结果 -> fix:foo2 [create-pr]
 ../bin/gitops commit -m "fix:foo2" --push --pr
-
-# 测试checkout同步主分支功能: 从主分支拉取最新代码 + 基于主分支创建新分支
-../bin/gitops checkout feature/test2 -s
 
 # 测试打印版本功能
 ../bin/gitops version

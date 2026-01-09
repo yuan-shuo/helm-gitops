@@ -29,7 +29,6 @@ helm gitops lint
 
 # 5. 推送代码：lint → push（保护分支拦截）
 helm gitops push                                      # 推送到 origin/当前分支
-helm gitops push --remote ci                          # 推送到名为 ci 的远程仓库
 
 
 # 6. 版本管理：读版本号 & 一键毕业发布
