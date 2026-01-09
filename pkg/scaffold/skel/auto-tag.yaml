@@ -1,56 +1,55 @@
-# 通篇全错
-name: auto-tag
+name: Auto Tag
 
 on:
   pull_request:
-    types: [closed]              # PR 关闭时
-    branches: [main, master]     # 目标分支
+    types: [closed]
+    branches: [main, master]
     paths:
-      - 'Chart.yaml'             # 只要 Chart.yaml 有改动就触发（后面再精筛）
+      - 'Chart.yaml'
 
 permissions:
   contents: write
 
 jobs:
   tag:
-    # 仅当 PR 被合并
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 1. 安装插件（用于读取版本）
-      - name: install helm-gitops
+      - name: Detect version change
+        id: detect
         run: |
-          helm plugin install https://github.com/yuan-shuo188/helm-gitops/releases/download/v0.1.0/helm-gitops_0.1.0_linux_amd64.tar.gz
-
-      # 2. 检测 version 是否真变化
-      - name: detect version change
-        id: diff
-        run: |
-          # 合并前的 version 行
-          git show HEAD~1:Chart.yaml | grep -E '^version:' | head -1 > old.ver
-          # 合并后的 version 行
-          grep -E '^version:' Chart.yaml > new.ver
-          if ! diff -q old.ver new.ver >/dev/null; then
+          # 获取合并前的版本号
+          OLD_VERSION=$(git show HEAD~1:Chart.yaml | grep '^version:' | awk '{print $2}')
+          # 获取合并后的版本号
+          NEW_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          
+          echo "old_version=${OLD_VERSION}" >> $GITHUB_OUTPUT
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          
+          # 比较版本号是否变化
+          if [ "${OLD_VERSION}" != "${NEW_VERSION}" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed from ${OLD_VERSION} to ${NEW_VERSION}"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged: ${NEW_VERSION}"
           fi
 
-      # 3. 读取新版本号（仅当 version 变化）
-      - name: get version
-        id: ver
-        if: steps.diff.outputs.changed == 'true'
-        run: echo "VERSION=$(helm gitops get-version)" >> $GITHUB_OUTPUT
-
-      # 4. 创建并推送标签（仅当 version 变化）
-      - name: create & push tag
-        if: steps.diff.outputs.changed == 'true'
+      - name: Create and push tag
+        if: steps.detect.outputs.changed == 'true'
         run: |
-          git config user.name  "ci-bot"
-          git config user.email "ci-bot@users.noreply.github.com"
-          git tag "v${{ steps.ver.outputs.VERSION }}"
-          git push origin "v${{ steps.ver.outputs.VERSION }}"
+          # 配置 git 用户信息
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 创建并推送 tag
+          VERSION="${{ steps.detect.outputs.new_version }}"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+          
+          echo "Created and pushed tag: v${VERSION}"
