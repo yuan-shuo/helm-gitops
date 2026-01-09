@@ -2,8 +2,8 @@ package git
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
+
+	"github.com/yuan-shuo/helm-gitops/pkg/utils"
 )
 
 func Add(path string) error {
@@ -51,9 +51,18 @@ func Init(dir string, initCommitMessage string) error {
 	return run(dir, "git", "commit", "-m", initCommitMessage)
 }
 
+// git tag {{version}}, no 'v' prefix added in this function
+func Tag(version string) error {
+	// 已存在则直接返回成功
+	if err := run("", "git", "rev-parse", "-q", "--verify", "refs/tags/"+version); err == nil {
+		return nil
+	}
+	return run("", "git", "tag", version)
+}
+
 func run(dir string, name string, arg ...string) error {
-	cmd := exec.Command(name, arg...)
-	cmd.Dir = dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, os.Stderr
-	return cmd.Run()
+	// cmd := exec.Command(name, arg...)
+	// cmd.Dir = dir
+	// cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, os.Stderr
+	return utils.Run(dir, name, arg...)
 }

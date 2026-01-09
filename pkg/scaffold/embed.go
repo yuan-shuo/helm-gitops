@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	_ "embed"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -43,6 +44,13 @@ func writeSkel(root string, withActions bool, initCommitMessage string, prMarkTe
 		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "auto-tag.yaml"), autoTagYAML, 0644); err != nil {
 			return err
 		}
+		fmt.Printf(`
+[need action] all the action files are ready
+  -  please go your github repo:
+  -  Settings -> Actions -> General -> Workflow permissions:
+  -  ** OPEN ** < Read and write permissions >
+  -  ** OPEN ** < Allow GitHub Actions to create and approve pull requests >
+		`)
 	}
 	return nil
 }

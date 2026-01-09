@@ -33,9 +33,12 @@ helm gitops lint
 helm gitops push                                      # 推送到 origin/当前分支
 
 
-# 6. 版本管理：读版本号 & 一键毕业发布
-helm gitops version                                   # 打印当前 Chart 版本
-helm gitops version --bump patch|minor|major          # 创建 release/vx.y.z 分支 → 改版本 → commit → push(成功后会询问是否自动清理此分支) → PR
+# 6. 版本管理
+helm gitops version # 仅查询当前版本
+helm gitops version -m pr -l patch # 传统 PR 模式（先开 release 分支 → 提 PR → CI 自动 tag）
+helm gitops version -m main -l patch # 快捷主分支模式（直接 commit + tag + 同时推送）
+# --mode=main|pr
+# --level=patch|minor|major
 ```
 
 ### 环境仓库功能
@@ -68,6 +71,6 @@ chmod +x $HELM_PLUGIN_DIR/bin/gitops
 
 ## 环境需求
 
-* git
+* git（version>=2.23）
 * helm
 * helm-unitest (可选，可以通过执行 **`helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false`** 来安装)

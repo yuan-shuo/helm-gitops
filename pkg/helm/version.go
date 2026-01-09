@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+
+	"github.com/yuan-shuo/helm-gitops/pkg/git"
+	"github.com/yuan-shuo/helm-gitops/pkg/utils"
 )
 
 // GetVersion 读取 Chart.yaml 的 version 字段
@@ -49,4 +52,115 @@ func BumpVersionAndSave(newVer string) (string, error) {
 		return "", err
 	}
 	return newVer, nil
+}
+
+func BumpWithPushAndPR(curVersion string, level string, PRmarkText string) error {
+
+	newVer := BumpString(curVersion, level)
+
+	// 1. 创建 release 分支（复用 checkout）
+	releaseBranch := "release/v" + newVer
+	if err := git.SwitchtoBranchByAutoCreate(releaseBranch); err != nil {
+		return err
+	}
+
+	// 提交带有 PR 标记的 commit 并执行 lint
+	commitMsg := git.AddPRMarkToCommitMsg("pr-bump: v"+newVer, PRmarkText)
+	if err := changeChartVersionAndCommitWithLint(newVer, commitMsg, true); err != nil {
+		return err
+	}
+
+	// // 2. 改版本号（复用 BumpVersionAndSave）
+	// if _, err := BumpVersionAndSave(newVer); err != nil {
+	// 	return err
+	// }
+
+	// // 3. commit + push + PR（复用 commit 命令）
+	// // 1.保护分支检测
+	// if cur, err := git.CurrentBranch(); err == nil && git.IsProtected(cur) {
+	// 	return git.ErrProtected(cur)
+	// }
+	// // 2.添加到缓存区
+	// if err := git.Add("."); err != nil {
+	// 	return err
+	// }
+	// // 3.提交带有PR标记的代码
+	// if err := git.Commit(git.AddPRMarkToCommitMsg("bump: v"+newVer, PRmarkText)); err != nil {
+	// 	return err
+	// }
+	// // 4.语法检查
+	// if err := Lint(); err != nil {
+	// 	return fmt.Errorf("lint check failed, push aborted: %w", err)
+	// }
+	// 5.提交更改
+	// return git.PushHead()
+	if err := git.PushHead(); err != nil {
+		return err
+	}
+	// 任务完成提示
+	fmt.Printf("created release branch %q and pushed to remote successfully\n", releaseBranch)
+
+	// 询问是否清理
+	// err = git.DeleteBranch(releaseBranch)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
+	// confirm逻辑在此处表现一般, 会卡死, 直接强制删
+	return git.ForceDeleteBranch(releaseBranch)
+
+}
+
+func BumpDirectlyOnDefaultBranch(curVersion string, level string, PRmarkText string) error {
+
+	newVer := BumpString(curVersion, level)
+
+	// 提交不带 PR 标记的 commit 并执行 lint
+	commitMsg := "main-bump: v" + newVer
+	if err := changeChartVersionAndCommitWithLint(newVer, commitMsg, false); err != nil {
+		return err
+	}
+
+	tag := "v" + newVer
+
+	// 打 tag
+	if err := git.Tag(tag); err != nil {
+		return err
+	}
+
+	// 同时推送HEAD和tag
+	return pushBranchAndTagTogether(tag)
+}
+
+func pushBranchAndTagTogether(tagName string) error {
+	return utils.Run("", "git", "push", "origin", "HEAD", tagName)
+}
+
+func changeChartVersionAndCommitWithLint(newVer string, commitMsg string, protectBranch bool) error {
+	// 2. 改版本号（复用 BumpVersionAndSave）
+	if _, err := BumpVersionAndSave(newVer); err != nil {
+		return err
+	}
+
+	// 3. commit + push + PR（复用 commit 命令）
+	// 1.保护分支检测
+	if protectBranch {
+		if cur, err := git.CurrentBranch(); err == nil && git.IsProtected(cur) {
+			return git.ErrProtected(cur)
+		}
+	}
+	// 2.添加到缓存区
+	if err := git.Add("."); err != nil {
+		return err
+	}
+	// 3.提交带有PR标记的代码
+	if err := git.Commit(commitMsg); err != nil {
+		return err
+	}
+	// 4.语法检查
+	if err := Lint(); err != nil {
+		return fmt.Errorf("lint check failed, push aborted: %w", err)
+	}
+
+	return nil
 }
