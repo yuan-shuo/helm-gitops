@@ -7,20 +7,26 @@ import (
 )
 
 func Add(path string) error {
-	cmd := exec.Command("git", "add", path)
-	cmd.Stdout, cmd.Stderr = nil, nil
-	return cmd.Run()
+	// cmd := exec.Command("git", "add", path)
+	// cmd.Stdout, cmd.Stderr = nil, nil
+	// return cmd.Run()
+	return run("", "git", "add", path)
 }
 
 func Commit(msg string) error {
 	// 空工作区直接返回 nil，不提交
-	if err := exec.Command("git", "diff-index", "--quiet", "HEAD", "--").Run(); err == nil {
+	if err := run("", "git", "diff-index", "--quiet", "HEAD", "--"); err == nil {
 		fmt.Println("nothing to commit, skipping")
 		return nil
 	}
-	cmd := exec.Command("git", "commit", "-m", msg)
-	cmd.Stdout, cmd.Stderr = nil, nil
-	return cmd.Run()
+	// if err := exec.Command("git", "diff-index", "--quiet", "HEAD", "--").Run(); err == nil {
+	// 	fmt.Println("nothing to commit, skipping")
+	// 	return nil
+	// }
+	// cmd := exec.Command("git", "commit", "-m", msg)
+	// cmd.Stdout, cmd.Stderr = nil, nil
+	// return cmd.Run()
+	return run("", "git", "commit", "-m", msg)
 }
 
 func AddPRMarkToCommitMsg(msg string, prMarkText string) string {
@@ -28,9 +34,10 @@ func AddPRMarkToCommitMsg(msg string, prMarkText string) string {
 }
 
 func PushHead() error {
-	cmd := exec.Command("git", "push", "--set-upstream", "origin", "HEAD")
-	cmd.Stdout, cmd.Stderr = nil, os.Stderr
-	return cmd.Run()
+	// cmd := exec.Command("git", "push", "--set-upstream", "origin", "HEAD")
+	// cmd.Stdout, cmd.Stderr = nil, os.Stderr
+	// return cmd.Run()
+	return run("", "git", "push", "--set-upstream", "origin", "HEAD")
 }
 
 // Init 在 dir 执行 git init + 初始 commit
@@ -47,5 +54,6 @@ func Init(dir string, initCommitMessage string) error {
 func run(dir string, name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	cmd.Dir = dir
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, os.Stderr
 	return cmd.Run()
 }

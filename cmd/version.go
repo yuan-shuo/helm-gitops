@@ -35,13 +35,13 @@ helm gitops version --bump patch   # 创建 release 分支并提交 PR`,
 			}
 
 			// 有 bump → 一键毕业流程
-			return runGraduate(bumpLevel)
+			return bumpWithPushAndPR(bumpLevel)
 		},
 	}
 }
 
 // runGraduate 复用现有子命令逻辑
-func runGraduate(level string) error {
+func bumpWithPushAndPR(level string) error {
 	// 确保能获得当前真正的版本号
 	mainBranch, err := git.DetectMain()
 	if err != nil {
@@ -99,10 +99,13 @@ func runGraduate(level string) error {
 	}
 	// 任务完成提示
 	fmt.Printf("created release branch %q and pushed to remote successfully\n", releaseBranch)
+
 	// 询问是否清理
-	err = git.DeleteBranch(releaseBranch)
-	if err != nil {
-		return err
-	}
-	return nil
+	// err = git.DeleteBranch(releaseBranch)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
+	return git.DeleteBranch(releaseBranch)
+
 }
