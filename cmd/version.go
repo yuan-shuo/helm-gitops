@@ -85,7 +85,7 @@ func runGraduate(level string) error {
 		return err
 	}
 	// 3.提交带有PR标记的代码
-	if err := git.Commit(git.AddPRMarkToCommitMsg("bump: v" + newVer)); err != nil {
+	if err := git.Commit(git.AddPRMarkToCommitMsg("bump: v"+newVer, PRmarkText)); err != nil {
 		return err
 	}
 	// 4.语法检查

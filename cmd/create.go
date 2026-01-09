@@ -8,6 +8,7 @@ import (
 var withActions bool
 
 const InitCommitMessage = "helm gitops chart init"
+const PRmarkText = "[create-pr]"
 
 func init() {
 	createCmd := newCreateCmd()
@@ -21,7 +22,7 @@ func newCreateCmd() *cobra.Command {
 		Short: "create a new Helm chart with GitOps scaffold",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return scaffold.Create(args[0], withActions, InitCommitMessage)
+			return scaffold.Create(args[0], withActions, InitCommitMessage, PRmarkText)
 		},
 	}
 }

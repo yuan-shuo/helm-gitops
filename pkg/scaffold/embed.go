@@ -24,7 +24,7 @@ var autoTagYAML string
 // var autoPrYAML string
 
 // 把 embed 内容写进 chart
-func writeSkel(root string, withActions bool, initCommitMessage string) error {
+func writeSkel(root string, withActions bool, initCommitMessage string, prMarkText string) error {
 	// 必写：gitignore
 	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnore, 0644); err != nil {
 		return err
@@ -33,6 +33,7 @@ func writeSkel(root string, withActions bool, initCommitMessage string) error {
 	if withActions {
 		// 替换占位符
 		workflowContent := strings.ReplaceAll(autoTestPrYAML, "{{INIT_COMMIT_MESSAGE}}", initCommitMessage)
+		workflowContent = strings.ReplaceAll(workflowContent, "{{PR_MARK_TEXT}}", prMarkText)
 
 		// auto-test-pr.yaml
 		if err := utils.WriteFile(filepath.Join(root, ".github", "workflows", "auto-test-pr.yaml"), workflowContent, 0644); err != nil {

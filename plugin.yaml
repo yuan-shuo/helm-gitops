@@ -1,0 +1,17 @@
+name: "gitops"
+version: "0.1.0"
+usage: "Helm GitOps utilities for managing Helm charts with GitOps workflows"
+description: |
+  A Helm plugin that provides GitOps-related helper functions for Helm charts.
+  It simplifies the process of creating Helm charts with GitOps scaffolding,
+  managing branches, committing changes, and version management.
+  
+  Features:
+  - Create Helm charts with GitOps scaffolding
+  - Switch to or create development branches
+  - Git add & commit with optional push and PR
+  - Local lint checks (helm lint + unittest)
+  - Push to remote with protection branch checks
+  - Version management and release automation
+command: "$HELM_PLUGIN_DIR/bin/gitops"
+ignoreFlags: false

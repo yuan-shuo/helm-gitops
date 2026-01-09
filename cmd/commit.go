@@ -44,7 +44,7 @@ func newCommitCmd() *cobra.Command {
 			}
 			// 1. 可选追加
 			if createPR {
-				commitMsg = git.AddPRMarkToCommitMsg(commitMsg)
+				commitMsg = git.AddPRMarkToCommitMsg(commitMsg, PRmarkText)
 			}
 			if err := git.Commit(commitMsg); err != nil {
 				return err

@@ -4,7 +4,9 @@
 
 ## 使用
 
-相对于常规自行创建helm chart，随后在内部粘贴.gitignore等文件，自行修改创建分支、提交、版本号，手动编写argocd所需的yaml，此扩展提供了较为舒适的简化方案：
+### git相关功能
+
+相对于常规自行创建helm chart，随后在内部粘贴.gitignore等文件，自行修改创建分支、提交、版本号等一系列繁琐操作，此扩展提供了较为舒适的简化方案：
 
 ```bash
 # 1. 创建：在原 helm chart 基础上添加 GitOps 骨架
@@ -33,23 +35,39 @@ helm gitops push                                      # 推送到 origin/当前�
 
 # 6. 版本管理：读版本号 & 一键毕业发布
 helm gitops version                                   # 打印当前 Chart 版本
-helm gitops version --bump patch|minor|major                      # 一键毕业：创建 release/vx.y.z 分支 → 改版本 → commit → push(成功后会询问是否自动清理此分支) → PR
+helm gitops version --bump patch|minor|major          # 创建 release/vx.y.z 分支 → 改版本 → commit → push(成功后会询问是否自动清理此分支) → PR
 ```
+
+### 环境仓库功能
+
+待开发
+
+### argocd功能
+
+待开发
 
 ## 安装
 
+### 使用 helm plugin install
 
+```bash
+helm plugin install https://github.com/yuan-shuo/helm-gitops
+```
 
+### 使用二进制文件
 
+- 前往：[Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases)下载对应操作系统的二进制文件
 
+- 随后将解压得到的gitops二进制文件放在`$HELM_PLUGIN_DIR/bin/` 目录下
 
+- 给予gitops二进制文件执行权限
 
+```bash
+chmod +x $HELM_PLUGIN_DIR/bin/gitops
+```
 
-go build -o bin/gitops .
-./bin/gitops create test
-cd test
-../bin/gitops checkout feature/foo
-../bin/gitops commit -m "fix: foo"
-git remote add origin https://gitee.com/yuan-shuo188/helm-test1.git && git push -u origin main
-../bin/gitops push
-进入 feature/foo 分支gitee页面, 提交PR, 审核+测试, 合并到main分支
+## 环境需求
+
+* git
+* helm
+* helm-unitest (可选，可以通过执行 **`helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false`** 来安装)

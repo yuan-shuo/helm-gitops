@@ -23,8 +23,8 @@ func Commit(msg string) error {
 	return cmd.Run()
 }
 
-func AddPRMarkToCommitMsg(msg string) string {
-	return fmt.Sprintf("%s [create-pr]", msg)
+func AddPRMarkToCommitMsg(msg string, prMarkText string) string {
+	return fmt.Sprintf("%s %s", msg, prMarkText)
 }
 
 func PushHead() error {
