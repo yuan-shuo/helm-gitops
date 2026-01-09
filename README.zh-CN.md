@@ -14,7 +14,7 @@ helm gitops create test --actions        # 同时生成 .github/workflows/<>.yam
 
 # 2. 切换分支：自动进入开发分支（可选同步主分支）
 helm gitops checkout feature/foo
-helm gitops checkout hotfix/bar -s       # 先 pull origin/main 再创建分支
+helm gitops checkout feature/foo -s       # 先 pull origin/main 再创建分支
 
 
 # 3. 提交代码：add + commit + 可选 push & 自动 PR

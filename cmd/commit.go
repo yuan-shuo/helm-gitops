@@ -34,10 +34,10 @@ func newCommitCmd() *cobra.Command {
 				return git.ErrProtected(cur)
 			}
 
-			// 0. 先同步
-			if err := git.PullRebase(); err != nil {
-				return fmt.Errorf("cannot pull latest changes: %w", err)
-			}
+			// // 0. 先同步
+			// if err := git.PullRebase(); err != nil {
+			// 	return fmt.Errorf("cannot pull latest changes: %w", err)
+			// }
 
 			if err := git.Add("."); err != nil {
 				return err
