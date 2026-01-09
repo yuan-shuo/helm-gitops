@@ -1,0 +1,101 @@
+name: ci-test
+
+on:
+  push:
+    paths:
+      - 'Chart.yaml'
+      - 'values.yaml'
+      - 'templates/**'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: github.event.head_commit.message != '{{INIT_COMMIT_MESSAGE}}'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Cache helm-unittest
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/helm/plugins/helm-unittest
+          key: unittest-${{ runner.os }}-${{ hashFiles('**/Chart.yaml') }}
+
+      - name: helm lint
+        run: helm lint .
+
+      - name: helm unittest
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false || true
+          helm unittest .
+
+      - name: kind create cluster
+        uses: helm/kind-action@v1.12.0
+        with:
+          node_image: kindest/node:v1.30.0
+          cluster_name: ci
+
+      - name: helm install & test
+        run: |
+          RELEASE="ci-${{ github.run_id }}"
+          helm install "$RELEASE" . --wait --timeout 120s
+          helm test "$RELEASE" --timeout 120s || {
+            kubectl logs -l app.kubernetes.io/instance="$RELEASE" --all-containers=true
+            exit 1
+          }
+          helm delete "$RELEASE"
+
+  create-pr:
+    needs: test
+    runs-on: ubuntu-latest
+    # 只在非 main/master 分支且 commit 包含 [create-pr] 时创建 PR
+    if: |
+      !contains(github.ref, 'refs/heads/main') &&
+      !contains(github.ref, 'refs/heads/master') &&
+      contains(github.event.head_commit.message, '[create-pr]')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      # 探测主分支叫 main 还是 master
+      - name: Detect main branch
+        id: detect-main
+        run: |
+          if git rev-parse --verify origin/main >/dev/null 2>&1; then
+            echo "branch=main" >> $GITHUB_OUTPUT
+          elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+            echo "branch=master" >> $GITHUB_OUTPUT
+          else
+            echo "branch=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.detect-main.outputs.branch != ''
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref_name }}
+          base: ${{ steps.detect-main.outputs.branch }}
+          title: "Auto PR: ${{ github.ref_name }}"
+          body: |
+            This PR was automatically created via `ci-test` workflow.
+
+            **Commit:** ${{ github.sha }}  
+            **Author:** ${{ github.actor }}
+          labels: automated
+          draft: false
