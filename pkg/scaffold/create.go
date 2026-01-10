@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
 )
@@ -26,6 +28,30 @@ func CreateChart(name string, withActions bool, initCommitMessage string, prMark
 		fmt.Println("warning: git init failed:", err)
 	} else {
 		fmt.Printf("✅  Chart %q created with GitOps scaffold & initial commit.\n", name)
+	}
+	return nil
+}
+
+func CreateEnvRepo(remoteChartUrl string, chartTag string, EnvInitCommitMessage string) error {
+	// 确认创建目录名
+	repoName := path.Base(strings.TrimSpace(remoteChartUrl))
+	root := filepath.Join(".", repoName+"-env")
+
+	valuesContent, err := fetchChartRepoToGetValues(remoteChartUrl, chartTag)
+	if err != nil {
+		return err
+	}
+
+	// 写env骨架
+	if err := writeEnvSkel(root, valuesContent, remoteChartUrl, chartTag); err != nil {
+		return err
+	}
+
+	// 3. git init
+	if err := git.Init(root, EnvInitCommitMessage); err != nil {
+		fmt.Println("warning: git init failed:", err)
+	} else {
+		fmt.Printf("✅  a env repo for %q created with GitOps scaffold & initial commit.\n", remoteChartUrl)
 	}
 	return nil
 }

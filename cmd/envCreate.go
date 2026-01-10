@@ -17,6 +17,7 @@ func init() {
 	envCreateCmd.Flags().StringVarP(&remoteChartUrl, "remote", "r", "", "path to the Helm chart directory")
 	envCreateCmd.Flags().StringVarP(&chartTag, "tag", "t", "", "chart tag to pull")
 	_ = envCreateCmd.MarkFlagRequired("remote")
+	_ = envCreateCmd.MarkFlagRequired("tag")
 	rootCmd.AddCommand(envCreateCmd)
 }
 

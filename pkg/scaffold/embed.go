@@ -73,7 +73,7 @@ func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartT
 	envDirList := []string{"dev", "test", "staging", "prod"}
 	for _, env := range envDirList {
 		// 必写：values.yaml
-		valuesContent := fmt.Sprintf("# %s/values.yaml\n", env) + chartValues
+		valuesContent := fmt.Sprintf("# %s/values.yaml\n\n", env) + chartValues
 		if err := utils.WriteFile(filepath.Join(root, env, "values.yaml"), valuesContent, 0644); err != nil {
 			return err
 		}
@@ -89,11 +89,14 @@ func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartT
 		if err := utils.WriteFile(filepath.Join(root, env, "patch.yaml"), patchContent, 0644); err != nil {
 			return err
 		}
-		// 必写：readme.md
-		envReadmeContent := strings.ReplaceAll(envReadme, "{{REMOTE_HELM_CHART_REPO}}", remoteChartUrl)
-		if err := utils.WriteFile(filepath.Join(root, env, "README.md"), envReadmeContent, 0644); err != nil {
-			return err
-		}
+
 	}
+
+	// 必写：readme.md
+	envReadmeContent := strings.ReplaceAll(envReadme, "{{REMOTE_HELM_CHART_REPO}}", remoteChartUrl)
+	if err := utils.WriteFile(filepath.Join(root, "README.md"), envReadmeContent, 0644); err != nil {
+		return err
+	}
+
 	return nil
 }
