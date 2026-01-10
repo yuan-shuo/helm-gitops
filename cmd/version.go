@@ -9,14 +9,14 @@ import (
 )
 
 var (
-	level string
-	mode  string
+	level   string
+	tagMode string
 )
 
 func init() {
 	versionCmd := newVersionCmd()
 	// main -> direct bump on main + tag (no PR) | or | pr -> commit push pr ci-auto-tag
-	versionCmd.Flags().StringVarP(&mode, "mode", "m", "", "tag mode: main|pr")
+	versionCmd.Flags().StringVarP(&tagMode, "mode", "m", "", "tag mode: main|pr")
 	// versionCmd.Flags().StringVar(&bumpLevel, "bump", "", "bump level: patch|minor|major (required)")
 	versionCmd.Flags().StringVarP(&level, "level", "l", "", "bump level: patch|minor|major")
 	// _ = versionCmd.MarkFlagRequired("bump")
@@ -39,12 +39,12 @@ helm gitops version --bump patch   # 创建 release 分支并提交 PR`,
 				return err
 			}
 			// 未指定 bump 级别或未指定 tag 模式时, 仅返回最新版本
-			if level == "" || mode == "" {
+			if level == "" || tagMode == "" {
 				fmt.Println(cur_version)
 				return nil
 			}
 			// 检查version-tag模式
-			switch mode {
+			switch tagMode {
 			case "pr":
 				// 使用pr-ci自动tag(需要actions)
 				return helm.BumpWithPushAndPR(cur_version, level, PRmarkText)

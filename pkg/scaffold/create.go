@@ -9,7 +9,7 @@ import (
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
 )
 
-func Create(name string, withActions bool, initCommitMessage string, prMarkText string) error {
+func CreateChart(name string, withActions bool, initCommitMessage string, prMarkText string) error {
 	// 1. helm create
 	if err := execCommand("helm", "create", name); err != nil {
 		return fmt.Errorf("helm create failed: %w", err)
@@ -17,7 +17,7 @@ func Create(name string, withActions bool, initCommitMessage string, prMarkText 
 	root := filepath.Join(".", name)
 
 	// 2. 写骨架
-	if err := writeSkel(root, withActions, initCommitMessage, prMarkText); err != nil {
+	if err := writeChartSkel(root, withActions, initCommitMessage, prMarkText); err != nil {
 		return err
 	}
 

@@ -7,22 +7,22 @@ import (
 
 var withActions bool
 
-const InitCommitMessage = "helm gitops chart init"
+const ChartInitCommitMessage = "helm gitops chart init"
 const PRmarkText = "[create-pr]"
 
 func init() {
-	createCmd := newCreateCmd()
-	createCmd.Flags().BoolVar(&withActions, "actions", false, "also create .github/workflows/ci-test.yaml")
-	rootCmd.AddCommand(createCmd)
+	chartCreateCmd := newChartCreateCmd()
+	chartCreateCmd.Flags().BoolVar(&withActions, "actions", false, "also create .github/workflows/ci-test.yaml")
+	rootCmd.AddCommand(chartCreateCmd)
 }
 
-func newCreateCmd() *cobra.Command {
+func newChartCreateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "create [NAME]",
 		Short: "create a new Helm chart with GitOps scaffold",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return scaffold.Create(args[0], withActions, InitCommitMessage, PRmarkText)
+			return scaffold.CreateChart(args[0], withActions, ChartInitCommitMessage, PRmarkText)
 		},
 	}
 }

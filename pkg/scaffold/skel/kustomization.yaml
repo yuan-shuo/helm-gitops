@@ -1,0 +1,15 @@
+# {{ENV}}/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: prod
+
+helmCharts:
+- name: myapp
+  repo: '{{REMOTE_HELM_CHART_REPO}}'
+  version: '{{REMOTE_HELM_CHART_TAG}}'
+  releaseName: myapp
+  valuesFile: values.yaml
+
+patchesStrategicMerge:
+  - patch.yaml
