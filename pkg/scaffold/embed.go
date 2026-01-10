@@ -65,7 +65,7 @@ var envPatchYAML string
 //go:embed skel/env-readme.md
 var envReadme string
 
-func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartTag string) error {
+func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartTag string, chartName string) error {
 	// 必写：gitignore
 	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnore, 0644); err != nil {
 		return err
@@ -78,7 +78,10 @@ func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartT
 			return err
 		}
 		// 必写：kustomization.yaml
+		// 先搞到一个临时的 kustomization.yaml 全文 然后渲染变量
 		kustomizationContent := strings.ReplaceAll(envKustomizationYAML, "{{ENV}}", env)
+		// 此部分将 repo 仓库下的 Chart.yaml 中的 name 属性渲染到 kustomization.yaml 中
+		kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{CHART_NAME}}", chartName)
 		kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{REMOTE_HELM_CHART_REPO}}", remoteChartUrl)
 		kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{REMOTE_HELM_CHART_TAG}}", chartTag)
 		if err := utils.WriteFile(filepath.Join(root, env, "kustomization.yaml"), kustomizationContent, 0644); err != nil {

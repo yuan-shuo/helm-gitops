@@ -26,7 +26,6 @@ func newEnvCreateCmd() *cobra.Command {
 		Use:   "create-env",
 		Short: "create a new environment repository from an existing remote Helm chart",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// 这里把 chartDir/mode 传下去即可，withActions 等变量按你实际来
 			return scaffold.CreateEnvRepo(remoteChartUrl, chartTag, EnvInitCommitMessage)
 		},
 	}

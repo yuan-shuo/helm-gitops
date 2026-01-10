@@ -45,7 +45,99 @@ helm gitops version -m main -l patch # Quick main branch mode (direct commit + t
 
 ### Environment Repository Features
 
-To be developed
+This tool can save time in environment repository configuration
+
+#### Create Operation
+
+Generate an environment repository directly based on the remote repository link of the Helm chart. The content in the files will be rendered based on information such as the remote repository link, reducing unnecessary manual writing and copying operations
+
+```bash
+# Generate environment repository directly based on remote link:
+# -r/--remote specifies the Helm chart remote repository link
+# -t/--tag specifies the tag of the chart repository used when creating the repository
+helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
+```
+
+#### Directory Tree
+
+Only need to execute the above line to generate the following directory tree
+
+```bash
+.
+├── .git
+├── .gitignore
+├── README.md
+├── dev
+│   ├── kustomization.yaml
+│   ├── patch.yaml
+│   └── values.yaml
+├── prod
+│   ├── kustomization.yaml
+│   ├── patch.yaml
+│   └── values.yaml
+├── staging
+│   ├── kustomization.yaml
+│   ├── patch.yaml
+│   └── values.yaml
+└── test
+    ├── kustomization.yaml
+    ├── patch.yaml
+    └── values.yaml
+```
+
+#### File Content
+
+values.yaml is copied from the code of the corresponding tag in the remote repository. Each file has a **`directory/filename`** marker comment at the top
+
+```yaml
+# dev/values.yaml
+
+# Default values for test-nor.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+```
+
+kustomization.yaml will automatically render using the remote repository link and tag, for example the following YAML. The name will be obtained using the name attribute of Chart.yaml, and it will check whether the fullnameOverride attribute of values.yaml is empty. If not empty, it will be overwritten
+
+```yaml
+# staging/kustomization.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: 'your_staging_namespace'
+
+helmCharts:
+- name: 'test-nor'
+  repo: 'https://gitee.com/yuan-shuo188/helm-test1'
+  version: 'v0.1.1'
+  releaseName: 'staging'
+  valuesFile: values.yaml
+
+patchesStrategicMerge:
+  - patch.yaml
+```
+
+#### View Chart Version Used by Each Environment
+
+Just one command:
+
+```bash
+helm gitops env-version
+```
+
+The effect is as follows, so there is no need to open each environment directory one by one to find the version written somewhere in the file
+
+```bash
+$ helm gitops env-version
+dev: v0.1.1
+prod: v0.1.1
+staging: v0.1.1
+test: v0.1.1
+```
 
 ### ArgoCD Features
 

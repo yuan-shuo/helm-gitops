@@ -3,13 +3,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: prod
+# namespace: 'your_{{ENV}}_namespace'
 
 helmCharts:
-- name: myapp
+- name: '{{CHART_NAME}}'
   repo: '{{REMOTE_HELM_CHART_REPO}}'
   version: '{{REMOTE_HELM_CHART_TAG}}'
-  releaseName: myapp
+  releaseName: '{{ENV}}'
   valuesFile: values.yaml
 
 patchesStrategicMerge:

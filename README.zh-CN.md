@@ -43,7 +43,99 @@ helm gitops version -m main -l patch # 快捷主分支模式（直接 commit + t
 
 ### 环境仓库功能
 
-待开发
+利用此工具可以在环境仓库配置中节省时间
+
+#### 创建操作
+
+直接基于helm chart的远程仓库链接生成一个环境仓库，文件中的内容会根据远程仓库链接等信息渲染得到，减少不必要的手工写入和复制等操作
+
+```bash
+# 基于 remote 链接直接生成环境仓库: 
+# -r/--remote指定 helm chart 远程仓库链接
+# -t/--tag 指定创建仓库时使用的 chart 仓库的 tag
+helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
+```
+
+#### 目录树
+
+仅需执行上面一行即可生成如下目录树
+
+```bash
+.
+├── .git
+├── .gitignore
+├── README.md
+├── dev
+│   ├── kustomization.yaml
+│   ├── patch.yaml
+│   └── values.yaml
+├── prod
+│   ├── kustomization.yaml
+│   ├── patch.yaml
+│   └── values.yaml
+├── staging
+│   ├── kustomization.yaml
+│   ├── patch.yaml
+│   └── values.yaml
+└── test
+    ├── kustomization.yaml
+    ├── patch.yaml
+    └── values.yaml
+```
+
+#### 文件内容
+
+values.yaml 是从远程仓库对应tag的代码中复制过来的，每个文件顶部均有**`目录/文件名`**的标记注释
+
+```yaml
+# dev/values.yaml
+
+# Default values for test-nor.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+```
+
+kustomization.yaml 会利用远程仓库链接及tag自动渲染例如下方yaml，其中name会利用Chart.yaml的name属性进行获取，同时判断values.yaml的fullnameOverride属性是否为空，非空则覆盖
+
+```yaml
+# staging/kustomization.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: 'your_staging_namespace'
+
+helmCharts:
+- name: 'test-nor'
+  repo: 'https://gitee.com/yuan-shuo188/helm-test1'
+  version: 'v0.1.1'
+  releaseName: 'staging'
+  valuesFile: values.yaml
+
+patchesStrategicMerge:
+  - patch.yaml
+```
+
+#### 查看各环境使用的 Chart 版本
+
+只需一行命令即可：
+
+```bash
+helm gitops env-version
+```
+
+效果如下，这样便不再需要逐个打开各个环境目录，寻找文件中不知何处写到的版本了
+
+```bash
+$ helm gitops env-version
+dev: v0.1.1
+prod: v0.1.1
+staging: v0.1.1
+test: v0.1.1
+```
 
 ### argocd功能
 

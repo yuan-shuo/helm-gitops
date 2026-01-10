@@ -37,13 +37,18 @@ func CreateEnvRepo(remoteChartUrl string, chartTag string, EnvInitCommitMessage 
 	repoName := path.Base(strings.TrimSpace(remoteChartUrl))
 	root := filepath.Join(".", repoName+"-env")
 
+	// 从 values.yaml 中获取全文
 	valuesContent, err := fetchChartRepoToGetValues(remoteChartUrl, chartTag)
 	if err != nil {
 		return err
 	}
-
+	// 从 Chart.yaml 中获取 chart name
+	chartName, err := unmarshalChartNameWithContent(remoteChartUrl, chartTag, valuesContent)
+	if err != nil {
+		return err
+	}
 	// 写env骨架
-	if err := writeEnvSkel(root, valuesContent, remoteChartUrl, chartTag); err != nil {
+	if err := writeEnvSkel(root, valuesContent, remoteChartUrl, chartTag, chartName); err != nil {
 		return err
 	}
 
