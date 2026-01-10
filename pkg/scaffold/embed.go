@@ -54,7 +54,3 @@ func writeSkel(root string, withActions bool, initCommitMessage string, prMarkTe
 	}
 	return nil
 }
-
-// func writeToActionsDir(root string, dest string, content string) error {
-// 	return utils.WriteFile(filepath.Join(root, ".github", "workflows", dest), content, 0644)
-// }

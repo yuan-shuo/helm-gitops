@@ -10,6 +10,7 @@ go build -o bin/gitops .
 ./bin/gitops create test-act --actions
 
 # 进入测试项目目录
+cd test-nor
 cd test-act
 
 # 链接远程测试仓库
@@ -44,7 +45,11 @@ echo 'test file new1' > ./templates/new1.txt
 echo '# test file new2' >> ./templates/service.yaml
 
 # 测试commit高级功能: 自动push + 创建PRcommit标记, gitee显示提交结果 -> fix:foo2 [create-pr]
-../bin/gitops commit -m "fix:foo2" --push --pr
+# ../bin/gitops commit -m "fix:foo2" --push --pr
+# 6. 版本管理
+../bin/gitops version # 仅查询当前版本
+../bin/gitops version -m pr -l patch # 传统 PR 模式（先开 release 分支 → 提 PR → CI 自动 tag）
+../bin/gitops version -m main -l patch # 快捷主分支模式（直接 commit + tag + 同时推送）
 
 # 测试打印版本功能
 ../bin/gitops version
