@@ -10,32 +10,49 @@ A Helm extension that provides GitOps-related auxiliary functions for Helm
 
 Compared to the conventional approach of manually creating Helm charts, pasting `.gitignore` files internally, and performing a series of tedious operations such as creating branches, committing, and managing version numbers, this extension provides a more comfortable simplified solution:
 
+#### Create Chart
+
 ```bash
-# 1. Create: Add GitOps skeleton on top of the original Helm chart
+# Create: Add GitOps skeleton on top of the original Helm chart
 helm gitops create test
 helm gitops create test --actions        # Also generate .github/workflows/<>.yaml
+```
 
+#### Create Branch
 
-# 2. Checkout: Automatically switch to development branch (optional sync with main branch)
+```bash
+# Checkout: Automatically switch to development branch (optional sync with main branch)
 helm gitops checkout feature/foo
 helm gitops checkout feature/foo -s       # Pull origin/main first, then create branch
+```
 
+#### Commit Push (Main Branch Protection)
 
-# 3. Commit: add + commit + optional push & automatic PR
+```bash
+# Commit: add + commit + optional push & automatic PR
 helm gitops commit -m "fix: foo"                    # Local commit
 helm gitops commit -m "feat: xxx" --push            # Commit and push
 helm gitops commit -m "ci: update" --pr --push      # Commit + push + automatic PR (includes [create-pr] commit marker)
+```
 
+#### Chart Check
 
-# 4. Local check: helm lint + helm unittest
+```bash
+# Local check: helm lint + helm unittest
 helm gitops lint
+```
 
+#### Chart Push
 
-# 5. Push code: lint → push (protected branch interception)
+```bash
+# Push code: lint → push (protected branch interception)
 helm gitops push                                      # Push to origin/current branch
+```
 
+#### Version Management
 
-# 6. Version management
+```bash
+# Version management
 helm gitops version # Query current version only
 helm gitops version -m pr -l patch # Traditional PR mode (create release branch first → submit PR → CI auto tag)
 helm gitops version -m main -l patch # Quick main branch mode (direct commit + tag + push simultaneously)
@@ -52,7 +69,7 @@ This tool can save time in environment repository configuration
 Generate 2 environment repositories directly based on the remote repository link of the Helm chart. The content in the files will be rendered based on information such as the remote repository link, reducing unnecessary manual writing and copying operations
 
 ```bash
-# Generate environment repository directly based on remote link:
+# Generate environment repository directly based on Chart remote link:
 # -r/--remote specifies the Helm chart remote repository link
 # -t/--tag specifies the tag of the chart repository used when creating the repository
 helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
@@ -109,8 +126,6 @@ kustomization.yaml will automatically render using the remote repository link an
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# namespace: 'your_staging_namespace'
-
 helmCharts:
 - name: 'test-nor'
   repo: 'https://gitee.com/yuan-shuo188/helm-test1'
@@ -139,9 +154,146 @@ staging: v0.1.1
 test: v0.1.1
 ```
 
-### argocd Features
+### argocd-yaml Generation Features
 
-To be developed
+Use this tool to save time writing argocd.yaml
+
+#### Create Operation
+
+By specifying different parameters, you can generate corresponding YAML for both non-production and production environments
+
+```bash
+# Generate argo-yaml directly based on the remote link of the environment repository:
+# -r/--remote specifies the environment repository remote link
+# -t/--tag specifies the tag of the remote repository used when generating argo-yaml
+# -m/--mode specifies the generation mode: non-prod|prod, will generate yaml files suitable for different environments
+# -d/--dry-run does not generate files, only prints the argo-yaml content
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod --dry-run
+```
+
+The reason for using two environment repositories + two argocd-yaml files is to ensure independent auditing for both environments, with repository and tag isolation, avoiding mixed commit histories. At the same time, argocd-yaml does not point to the helm chart repository but only to the environment repository, because the environment repository has already specified the helm chart as the rendering source, so argo does not need to point to two repositories at the same time causing unnecessary combination confusion. The final presentation can be illustrated as: `argocd -> env-repo -> helm-chart`
+
+#### Directory Tree
+
+Execute the following commands:
+
+```bash
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod
+```
+
+You can get two YAML files
+
+```
+|-- helm-env-non-prod1-argocd-non-prod.yaml
+|-- helm-env-prod1-argocd-prod.yaml
+```
+
+#### File Content
+
+It will be generated based on the environment repository information. The generated YAML prepares most of the information that originally needed to be filled in manually, allowing users to focus on the problem rather than searching for and filling in information
+
+##### Non-production argo-yaml
+
+For non-production environment repositories, it may contain multiple environment value directories, such as dev, test, etc. When specifying `--mode/-m non-prod`, the program can automatically find all first-level directories containing `kustomize.yaml` in the remote repository and automatically add them to argo-yaml
+
+For example, in the env repository, add an additional environment directory called `anthor-env`:
+
+```
+|-- helm-test1-env-non-prod
+|   |-- anthor-env
+|   |   |-- kustomization.yaml # search core
+|   |   |-- patch.yaml
+|   |   `-- values.yaml
+```
+
+After tagging v0.5.0 and pushing the code and tag, use
+
+```bash
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
+```
+
+The generated YAML result is as follows. You can see that the environment directory `anthor-env` manually created by the user (not generated by this program) has also been written into argo-yaml
+
+```yaml
+# helm-env-non-prod1-argo-non-prod.yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: 'helm-env-non-prod1-argo-non-prod'
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - env: anthor-env
+      - env: dev
+      - env: staging
+      - env: test
+  template:
+    metadata:
+      name: 'helm-env-non-prod1-{{env}}'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://gitee.com/yuan-shuo188/helm-env-non-prod1'
+        targetRevision: 'v0.5.0'
+        path: '{{env}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'helm-env-non-prod1-{{env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+```
+
+##### Production argo-yaml
+
+Only specify the prod environment as the control source. After executing the following command, a YAML file is generated
+
+```bash
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod
+```
+
+In the generated argo-yaml, automated is disabled by default
+
+```yaml
+# helm-env-prod1-argo-prod.yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: 'helm-env-prod1-argo-prod'
+  namespace: argocd
+  # annotations:
+  #   # canary analysis template (optional, read by Argo Rollouts AnalysisTemplate)
+  #   canary.argo.io/analysis-template: 
+  #   canary.argo.io/step-weight: 
+  #   canary.argo.io/step-duration: 
+spec:
+  project: default
+  source:
+    repoURL: 'https://gitee.com/yuan-shuo188/helm-env-prod1'
+    targetRevision: 'v1.0.0'
+    path: prod
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+    - CreateNamespace=true
+```
 
 ## Installation
 
