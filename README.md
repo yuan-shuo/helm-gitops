@@ -6,7 +6,7 @@ A Helm extension that provides GitOps-related auxiliary functions for Helm
 
 ## Usage
 
-### Git-related Features
+### chart-git Chart Development Features
 
 Compared to the conventional approach of manually creating Helm charts, pasting `.gitignore` files internally, and performing a series of tedious operations such as creating branches, committing, and managing version numbers, this extension provides a more comfortable simplified solution:
 
@@ -43,13 +43,13 @@ helm gitops version -m main -l patch # Quick main branch mode (direct commit + t
 # --level=patch|minor|major
 ```
 
-### Environment Repository Features
+### env-repo Environment Repository Features
 
 This tool can save time in environment repository configuration
 
 #### Create Operation
 
-Generate an environment repository directly based on the remote repository link of the Helm chart. The content in the files will be rendered based on information such as the remote repository link, reducing unnecessary manual writing and copying operations
+Generate 2 environment repositories directly based on the remote repository link of the Helm chart. The content in the files will be rendered based on information such as the remote repository link, reducing unnecessary manual writing and copying operations
 
 ```bash
 # Generate environment repository directly based on remote link:
@@ -60,34 +60,35 @@ helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 
 #### Directory Tree
 
-Only need to execute the above line to generate the following directory tree
+Only need to execute the above line to generate the following directory tree. You can see that a repository is created for both non-production and production environments. Each repository directory contains `.git (already initialized) + .gitignore`
 
-```bash
+```
 .
-├── .git
-├── .gitignore
-├── README.md
-├── dev
-│   ├── kustomization.yaml
-│   ├── patch.yaml
-│   └── values.yaml
-├── prod
-│   ├── kustomization.yaml
-│   ├── patch.yaml
-│   └── values.yaml
-├── staging
-│   ├── kustomization.yaml
-│   ├── patch.yaml
-│   └── values.yaml
-└── test
-    ├── kustomization.yaml
-    ├── patch.yaml
-    └── values.yaml
+|-- helm-test1-env-non-prod
+|   |-- README.md
+|   |-- dev
+|   |   |-- kustomization.yaml
+|   |   |-- patch.yaml
+|   |   `-- values.yaml
+|   |-- staging
+|   |   |-- kustomization.yaml
+|   |   |-- patch.yaml
+|   |   `-- values.yaml
+|   `-- test
+|       |-- kustomization.yaml
+|       |-- patch.yaml
+|       `-- values.yaml
+`-- helm-test1-env-prod
+    |-- README.md
+    `-- prod
+        |-- kustomization.yaml
+        |-- patch.yaml
+        `-- values.yaml
 ```
 
 #### File Content
 
-values.yaml is copied from the code of the corresponding tag in the remote repository. Each file has a **`directory/filename`** marker comment at the top
+values.yaml is copied from the code of the corresponding tag in the remote repository, so there is no need to go back to the chart repository to see what the default values.yaml looks like. Each file has a **`directory/filename`** marker comment at the top
 
 ```yaml
 # dev/values.yaml
@@ -134,12 +135,11 @@ The effect is as follows, so there is no need to open each environment directory
 ```bash
 $ helm gitops env-version
 dev: v0.1.1
-prod: v0.1.1
 staging: v0.1.1
 test: v0.1.1
 ```
 
-### ArgoCD Features
+### argocd Features
 
 To be developed
 

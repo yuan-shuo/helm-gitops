@@ -48,16 +48,10 @@ func CreateEnvRepo(remoteChartUrl string, chartTag string, EnvInitCommitMessage 
 		return err
 	}
 	// 写env骨架
-	if err := writeEnvSkel(root, valuesContent, remoteChartUrl, chartTag, chartName); err != nil {
+	if err := writeEnvSkel(root, valuesContent, remoteChartUrl, chartTag, chartName, EnvInitCommitMessage); err != nil {
 		return err
 	}
 
-	// 3. git init
-	if err := git.Init(root, EnvInitCommitMessage); err != nil {
-		fmt.Println("warning: git init failed:", err)
-	} else {
-		fmt.Printf("✅  a env repo for %q created with GitOps scaffold & initial commit.\n", remoteChartUrl)
-	}
 	return nil
 }
 

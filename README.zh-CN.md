@@ -4,7 +4,7 @@
 
 ## 使用
 
-### git相关功能
+### chart-git 图表开发功能
 
 相对于常规自行创建helm chart，随后在内部粘贴.gitignore等文件，自行修改创建分支、提交、版本号等一系列繁琐操作，此扩展提供了较为舒适的简化方案：
 
@@ -41,13 +41,13 @@ helm gitops version -m main -l patch # 快捷主分支模式（直接 commit + t
 # --level=patch|minor|major
 ```
 
-### 环境仓库功能
+### env-repo 环境仓库功能
 
 利用此工具可以在环境仓库配置中节省时间
 
 #### 创建操作
 
-直接基于helm chart的远程仓库链接生成一个环境仓库，文件中的内容会根据远程仓库链接等信息渲染得到，减少不必要的手工写入和复制等操作
+直接基于helm chart的远程仓库链接生成2个环境仓库，文件中的内容会根据远程仓库链接等信息渲染得到，减少不必要的手工写入和复制等操作
 
 ```bash
 # 基于 remote 链接直接生成环境仓库: 
@@ -58,34 +58,35 @@ helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 
 #### 目录树
 
-仅需执行上面一行即可生成如下目录树
+仅需执行上面一行即可生成如下目录树，可以看到为非生产环境和生产环境各创建了一个仓库，每个仓库目录下同时包含 `.git(已经初始化过) + .gitignore`
 
-```bash
+```
 .
-├── .git
-├── .gitignore
-├── README.md
-├── dev
-│   ├── kustomization.yaml
-│   ├── patch.yaml
-│   └── values.yaml
-├── prod
-│   ├── kustomization.yaml
-│   ├── patch.yaml
-│   └── values.yaml
-├── staging
-│   ├── kustomization.yaml
-│   ├── patch.yaml
-│   └── values.yaml
-└── test
-    ├── kustomization.yaml
-    ├── patch.yaml
-    └── values.yaml
+|-- helm-test1-env-non-prod
+|   |-- README.md
+|   |-- dev
+|   |   |-- kustomization.yaml
+|   |   |-- patch.yaml
+|   |   `-- values.yaml
+|   |-- staging
+|   |   |-- kustomization.yaml
+|   |   |-- patch.yaml
+|   |   `-- values.yaml
+|   `-- test
+|       |-- kustomization.yaml
+|       |-- patch.yaml
+|       `-- values.yaml
+`-- helm-test1-env-prod
+    |-- README.md
+    `-- prod
+        |-- kustomization.yaml
+        |-- patch.yaml
+        `-- values.yaml
 ```
 
 #### 文件内容
 
-values.yaml 是从远程仓库对应tag的代码中复制过来的，每个文件顶部均有**`目录/文件名`**的标记注释
+values.yaml 是从远程仓库对应tag的代码中复制过来的，这样就不需要再返回chart仓库观察默认values.yaml长什么样子，同时每个文件顶部均有**`目录/文件名`**的标记注释
 
 ```yaml
 # dev/values.yaml
@@ -132,12 +133,11 @@ helm gitops env-version
 ```bash
 $ helm gitops env-version
 dev: v0.1.1
-prod: v0.1.1
 staging: v0.1.1
 test: v0.1.1
 ```
 
-### argocd功能
+### argocd 功能
 
 待开发
 
