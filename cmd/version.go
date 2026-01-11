@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	level   string
-	tagMode string
+	level     string
+	tagMode   string
+	tagSuffix string
 )
 
 func init() {
@@ -18,7 +19,8 @@ func init() {
 	// main -> direct bump on main + tag (no PR) | or | pr -> commit push pr ci-auto-tag
 	versionCmd.Flags().StringVarP(&tagMode, "mode", "m", "", "tag mode: main|pr")
 	// versionCmd.Flags().StringVar(&bumpLevel, "bump", "", "bump level: patch|minor|major (required)")
-	versionCmd.Flags().StringVarP(&level, "level", "l", "", "bump level: patch|minor|major")
+	versionCmd.Flags().StringVarP(&level, "level", "l", "", "bump level: patch|minor|major|no")
+	versionCmd.Flags().StringVarP(&tagSuffix, "suffix", "s", "", "tag suffix")
 	// _ = versionCmd.MarkFlagRequired("bump")
 	rootCmd.AddCommand(versionCmd)
 }
@@ -47,10 +49,10 @@ helm gitops version --bump patch   # 创建 release 分支并提交 PR`,
 			switch tagMode {
 			case "pr":
 				// 使用pr-ci自动tag(需要actions)
-				return helm.BumpWithPushAndPR(cur_version, level, PRmarkText)
+				return helm.BumpWithPushAndPR(cur_version, level, PRmarkText, tagSuffix)
 			case "main":
 				// 在主分支上直接commit tag 然后同时推送分支和tag
-				return helm.BumpDirectlyOnDefaultBranch(cur_version, level, PRmarkText)
+				return helm.BumpDirectlyOnDefaultBranch(cur_version, level, PRmarkText, tagSuffix)
 			}
 
 			return nil

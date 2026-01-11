@@ -6,6 +6,23 @@ A Helm extension that provides GitOps-related auxiliary functions for Helm
 
 ## Usage
 
+### If you don't want to read anything
+
+Just replace the **`URLs/tags`** with your own and copy-paste to run.
+
+```bash
+# 1. Create a Git-initialized Chart
+helm gitops create my-chart
+
+# 2. Generate an environment repository (based on the Chart remote repo + repo tag)
+helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
+
+# 3. Generate an argo.yaml (based on the environment repo + repo tag)
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1 -t v0.5.0 -m non-prod
+```
+
+The generated content is based on information generation, so it saves a lot of trouble (referring to constantly jumping between multiple remote repositories as a human to copy and visually check, etc.). You can just manage git yourself. If you don't want to read the following content, the above three commands can also help you solve most of the trouble
+
 ### chart-git Chart Development Features
 
 Compared to the conventional approach of manually creating Helm charts, pasting `.gitignore` files internally, and performing a series of tedious operations such as creating branches, committing, and managing version numbers, this extension provides a more comfortable simplified solution:
@@ -56,8 +73,10 @@ helm gitops push                                      # Push to origin/current b
 helm gitops version # Query current version only
 helm gitops version -m pr -l patch # Traditional PR mode (create release branch first → submit PR → CI auto tag)
 helm gitops version -m main -l patch # Quick main branch mode (direct commit + tag + push simultaneously)
-# --mode=main|pr
-# --level=patch|minor|major
+helm gitops version -m main -l no -s pre # v0.0.1 -> v0.0.1-pre
+# --mode/-m = main|pr
+# --level/-l = patch|minor|major|no (no version number change, can be combined with -s to continuously update suffix on the same v0.x.x)
+# --suffix/-s = <your_tag_suffix>
 ```
 
 ### env-repo Environment Repository Features

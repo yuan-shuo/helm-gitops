@@ -4,6 +4,23 @@
 
 ## 使用
 
+### 如果你什么都不想看
+
+就这三条，`remote / tag` 改成自己的然后复制过去直接用
+
+```bash
+# 1.创建一个 git 初始化过的 Chart
+helm gitops create my-chart
+
+# 2.生成一个环境仓库 (基于 Chart 远程仓库 + 仓库tag)
+helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
+
+# 3.生成一个argo.yaml (基于环境仓库 + 仓库tag)
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
+```
+
+生成内容都是基于信息生成所以省掉很多麻烦（指以人类之躯在多个远程仓库不停跳转复制肉眼检查等），自己敲 git 管理就行，如果下面的东西你都不想看，上面三条也能帮你解决大部分麻烦了
+
 ### chart-git 图表开发功能
 
 相对于常规自行创建helm chart，随后在内部粘贴.gitignore等文件，自行修改创建分支、提交、版本号等一系列繁琐操作，此扩展提供了较为舒适的简化方案：
@@ -54,8 +71,10 @@ helm gitops push                                      # 推送到 origin/当前�
 helm gitops version # 仅查询当前版本
 helm gitops version -m pr -l patch # 传统 PR 模式（先开 release 分支 → 提 PR → CI 自动 tag）
 helm gitops version -m main -l patch # 快捷主分支模式（直接 commit + tag + 同时推送）
-# --mode=main|pr
-# --level=patch|minor|major
+helm gitops version -m main -l no -s pre # v0.0.1 -> v0.0.1-pre
+# --mode/-m = main|pr
+# --level/-l = patch|minor|major|no(无版本数字变化, 可以搭配-s在同一vx.x.x不断更新后缀)
+# --suffix/-s = <your_tag_suffix>
 ```
 
 ### env-repo 环境仓库功能
