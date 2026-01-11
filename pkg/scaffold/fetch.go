@@ -67,7 +67,7 @@ func listKustomizeEnvDirs(repoURL string, tag string) ([]string, error) {
 		}
 		for _, f := range subTree.Entries {
 			if f.Name == "kustomization.yaml" || f.Name == "kustomization.yml" {
-				dirs = append(dirs, e.Name)
+				dirs = append(dirs, utils.NormalizeToNS(e.Name))
 				break
 			}
 		}
