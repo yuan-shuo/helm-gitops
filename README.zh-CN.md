@@ -107,8 +107,6 @@ kustomization.yaml 会利用远程仓库链接及tag自动渲染例如下方yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# namespace: 'your_staging_namespace'
-
 helmCharts:
 - name: 'test-nor'
   repo: 'https://gitee.com/yuan-shuo188/helm-test1'
@@ -137,9 +135,19 @@ staging: v0.1.1
 test: v0.1.1
 ```
 
-### argocd 功能
+### argocd-yaml 生成功能
 
-待开发
+使用此工具可以节省编写argocd.yaml的时间
+
+#### 创建操作
+
+通过指定不同的参数，可以为非开发环境和开发环境各自生成对应的yaml
+
+```bash
+
+```
+
+之所以使用两项环境仓库+两份argocd-yaml是为了确保两环境独立审计，仓库及tag隔离，避免提交历史杂糅。同时argocd-yaml并不指向helm chart仓库而是仅指向环境仓库，因为此前环境仓库中已经指定过helm chart作为渲染源了，所以argo不需要同时指向两个仓库造成不必要的组合混乱，最终呈现可以示意为：`argocd -> env-repo -> helm-chart`
 
 ## 安装
 

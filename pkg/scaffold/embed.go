@@ -67,10 +67,6 @@ var envPatchYAML string
 var envReadme string
 
 func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartTag string, chartName string, EnvInitCommitMessage string) error {
-	// // 必写：gitignore
-	// if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnore, 0644); err != nil {
-	// 	return err
-	// }
 
 	// 创建开发测试环境仓库
 	envDirList := []string{"dev", "test", "staging"}
@@ -112,6 +108,57 @@ func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartT
 	// if err := utils.WriteFile(filepath.Join(prodDir, "README.md"), prodEnvReadmeContent, 0644); err != nil {
 	// 	return err
 	// }
+
+	return nil
+}
+
+//go:embed skel/argo-non-prod.yaml
+var argoNonProdYAML string
+
+//go:embed skel/argo-prod.yaml
+var argoProdYAML string
+
+// 直接在当前目录下生成 <repo.name>-argocd-<non-prod/prod>.yaml
+func writeArgoYAML(root string, repoName string, remoteEnvRepoUrl string, envRepoTag string, createArgoMode string, argoCreateDryRun bool) error {
+
+	var argoYAML string
+	var fileName string
+
+	switch createArgoMode {
+	// 生产环境 yaml 渲染逻辑
+	case "prod":
+		argoYAML = argoProdYAML
+		fileName = root + "-prod"
+		argoYAML = strings.ReplaceAll(argoYAML, "{{ENV_REPO_NAME}}", repoName)
+		argoYAML = strings.ReplaceAll(argoYAML, "{{ENV_REPO_URL}}", remoteEnvRepoUrl)
+		argoYAML = strings.ReplaceAll(argoYAML, "{{ENV_REPO_TAG}}", envRepoTag)
+	// 非生产环境 yaml 渲染逻辑
+	case "non-prod":
+		argoYAML = argoNonProdYAML
+		fileName = root + "-non-prod"
+		// envList, err := listKustomizeEnvDirs(remoteEnvRepoUrl, envRepoTag)
+		// if err != nil {
+		// 	return err
+		// }
+		// argoYAML, err = renderArgoAppSet(argoYAML, Values{
+		// 	ENV_REPO_NAME: repoName,
+		// 	ENV_REPO_URL:  remoteEnvRepoUrl,
+		// 	ENV_REPO_TAG:  envRepoTag,
+		// 	Envs:          envList,
+		// })
+	default:
+		return fmt.Errorf("createArgoMode must be 'prod' or 'non-prod'")
+	}
+
+	if argoCreateDryRun {
+		fmt.Printf("%s\n", argoYAML)
+		return nil
+	}
+
+	// 写 argo 骨架
+	if err := utils.WriteFile(filepath.Join(fileName+".yaml"), argoYAML, 0644); err != nil {
+		return err
+	}
 
 	return nil
 }

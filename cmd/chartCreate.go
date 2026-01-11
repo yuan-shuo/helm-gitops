@@ -18,9 +18,10 @@ func init() {
 
 func newChartCreateCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "create [NAME]",
-		Short: "create a new Helm chart with GitOps scaffold",
-		Args:  cobra.ExactArgs(1),
+		Use:     "create [NAME]",
+		Short:   "create a new Helm chart with GitOps scaffold",
+		Args:    cobra.ExactArgs(1),
+		Example: `helm gitops create mychart`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return scaffold.CreateChart(args[0], withActions, ChartInitCommitMessage, PRmarkText)
 		},

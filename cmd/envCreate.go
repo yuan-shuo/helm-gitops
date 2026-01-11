@@ -23,8 +23,9 @@ func init() {
 
 func newEnvCreateCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "create-env",
-		Short: "create a new environment repository from an existing remote Helm chart",
+		Use:     "create-env",
+		Short:   "create a new environment repository from an existing remote Helm chart",
+		Example: `helm gitops create-env -r https://github.com/yuan-shuo/helm-charts.git -t v0.1.0`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return scaffold.CreateEnvRepo(remoteChartUrl, chartTag, EnvInitCommitMessage)
 		},

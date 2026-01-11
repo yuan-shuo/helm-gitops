@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 // // 统一封装 exec，方便后续加日志、dry-run 等
@@ -15,6 +17,47 @@ import (
 // 	cmd.Dir = dir
 // 	return cmd.Run()
 // }
+
+// NormalizeToNS 把任意字符串转换成符合 K8s 命名空间规则的字符串：
+// 只能包含小写字母、数字、连字符 "-"；长度 1-63；首尾必须是字母或数字。
+// 非法字符一律用 "-" 替代，并做长度截断与收尾校正。
+func NormalizeToNS(s string) string {
+	// 1. 统一小写
+	s = strings.ToLower(s)
+
+	// 2. 非法字符 → "-"
+	reg := regexp.MustCompile(`[^a-z0-9-]`)
+	s = reg.ReplaceAllString(s, "-")
+
+	// 3. 合并连续 "-"
+	s = regexp.MustCompile(`-+`).ReplaceAllString(s, "-")
+
+	// 4. 去掉首尾 "-"
+	s = strings.Trim(s, "-")
+
+	// 5. 长度 1-63
+	if len(s) > 63 {
+		s = s[:63]
+	}
+	if len(s) == 0 {
+		return "default"
+	}
+
+	// 6. 确保首尾是字母或数字
+	if !regexp.MustCompile(`^[a-z0-9]`).MatchString(s[:1]) {
+		s = "a" + s[1:]
+	}
+	if !regexp.MustCompile(`[a-z0-9]$`).MatchString(s[len(s)-1:]) {
+		s = s[:len(s)-1] + "0"
+	}
+
+	return s
+}
+
+// cleanRepoURL 去掉首尾空白，并删除 URL 最右侧的 "/"（如果有）
+func CleanRepoURL(raw string) string {
+	return strings.TrimRight(strings.TrimSpace(raw), "/")
+}
 
 func WriteFile(name, content string, perm os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {

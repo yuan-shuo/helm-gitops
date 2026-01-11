@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
+	"github.com/yuan-shuo/helm-gitops/pkg/utils"
 )
 
 func CreateChart(name string, withActions bool, initCommitMessage string, prMarkText string) error {
@@ -33,6 +34,8 @@ func CreateChart(name string, withActions bool, initCommitMessage string, prMark
 }
 
 func CreateEnvRepo(remoteChartUrl string, chartTag string, EnvInitCommitMessage string) error {
+	// 清理远程 chart URL
+	remoteChartUrl = utils.CleanRepoURL(remoteChartUrl)
 	// 确认创建目录名
 	repoName := path.Base(strings.TrimSpace(remoteChartUrl))
 	root := filepath.Join(".", repoName+"-env")
@@ -49,6 +52,21 @@ func CreateEnvRepo(remoteChartUrl string, chartTag string, EnvInitCommitMessage 
 	}
 	// 写env骨架
 	if err := writeEnvSkel(root, valuesContent, remoteChartUrl, chartTag, chartName, EnvInitCommitMessage); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateArgoYaml(remoteEnvRepoUrl string, envRepoTag string, createArgoMode string, argoCreateDryRun bool) error {
+	// 清理远程 env repo URL
+	remoteEnvRepoUrl = utils.CleanRepoURL(remoteEnvRepoUrl)
+	// 确认创建文件名
+	repoName := path.Base(strings.TrimSpace(remoteEnvRepoUrl))
+	root := filepath.Join(".", repoName+"-argocd")
+
+	// 写 argo 骨架
+	if err := writeArgoYAML(root, repoName, remoteEnvRepoUrl, envRepoTag, createArgoMode, argoCreateDryRun); err != nil {
 		return err
 	}
 
