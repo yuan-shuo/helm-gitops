@@ -143,9 +143,12 @@ func writeArgoYAML(root string, repoName string, remoteEnvRepoUrl string, envRep
 		argoYAML, err = renderArgoAppSet(argoYAML, Values{
 			ENV_REPO_NAME: utils.NormalizeToNS(repoName),
 			ENV_REPO_URL:  remoteEnvRepoUrl,
-			ENV_REPO_TAG:  utils.NormalizeToNS(envRepoTag),
+			ENV_REPO_TAG:  envRepoTag,
 			Envs:          envList,
 		})
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("createArgoMode must be 'prod' or 'non-prod'")
 	}

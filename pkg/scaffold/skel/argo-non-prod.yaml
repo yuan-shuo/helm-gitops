@@ -1,0 +1,32 @@
+# {{ .ENV_REPO_NAME }}-argo-non-prod.yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: '{{ .ENV_REPO_NAME }}-argo-non-prod'
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      {{- range $env := .Envs }}
+      - env: {{ $env }}
+      {{- end }}
+  template:
+    metadata:
+      name: '{{ .ENV_REPO_NAME }}-{{`{{env}}`}}'
+    spec:
+      project: default # [may need action] Adjust to the project required for the production environment
+      source:
+        repoURL: '{{ .ENV_REPO_URL }}'
+        targetRevision: '{{ .ENV_REPO_TAG }}'
+        path: '{{`{{env}}`}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .ENV_REPO_NAME }}-{{`{{env}}`}}' # [may need action] Adjust to the namespace required for the production environment
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

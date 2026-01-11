@@ -1,0 +1,31 @@
+# {{ENV_REPO_NAME}}-argo-prod.yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: '{{ENV_REPO_NAME}}-argo-prod' # [may need action] If you want to use a different name, please adjust it here
+  namespace: argocd
+  # annotations:
+  #   # canary analysis template (optional, read by Argo Rollouts AnalysisTemplate)
+  #   canary.argo.io/analysis-template: 
+  #   canary.argo.io/step-weight: 
+  #   canary.argo.io/step-duration: 
+spec:
+  project: default # [may need action] Adjust to the project required for the production environment
+  source:
+    repoURL: '{{ENV_REPO_URL}}'
+    targetRevision: '{{ENV_REPO_TAG}}'
+    path: prod
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod # [may need action] Adjust to the namespace required for the production environment
+  syncPolicy:
+    automated: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+    - CreateNamespace=true
