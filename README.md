@@ -416,7 +416,7 @@ spec:
 ### Using helm plugin install
 
 ```bash
-helm plugin install https://github.com/yuan-shuo/helm-gitops
+helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.1-pre/helm-gitops_0.5.1-pre_linux_amd64.tar.gz
 ```
 
 ### Using Binary Files
