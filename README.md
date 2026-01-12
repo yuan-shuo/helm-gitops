@@ -171,6 +171,10 @@ patch.yaml is empty by default
 
 #### Parameterized Rendering *
 
+If you only need the raw Helm-rendered output, just leave the `kustomization.yaml` untouched (or keep it empty). If Kustomize isn’t installed, the plugin silently skips the Kustomize step and you’ll find the plain Helm result at：
+
+`<your_env>/rendered/helm/helm-chart.yaml`
+
 ##### Command
 
 Just look at the command:

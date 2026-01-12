@@ -169,6 +169,8 @@ patch.yaml默认为空
 
 #### 参数化渲染 *
 
+如果你只需要helm的渲染结果，那不动kustomization.yaml（保持为空）就可以了，如果你没有kust软件也没关系，会自动跳过kust渲染，你可以在 **`<your_env>/rendered/helm/helm-chart.yaml`** 找到你的helm渲染结果
+
 ##### 指令
 
 直接看指令：
@@ -192,7 +194,7 @@ remote使用的是git仓库链接，此部分直接省去了发布操作，**<u>
 
 ###### --use-local-cache / -l
 
-如果使用kustomize的helm功能，让其指向一个helm chart没问题，可以，但是如果需要反复调试生成的话，不停的网络请求是没有必要的，这时你可能会把helm渲染结果文件下载到本地，然后让kustomize指向它，这时利用软件的 `-l` 参数，你就完全没必要来回折腾了，如果缓存目录包含helm文件它自己会直接渲染而不提出网络请求
+如果使用kustomize的helm功能，让其指向一个helm chart没问题，可以，但是如果需要反复调试生成的话，不停的网络请求是没有必要的，这时你可能会把helm渲染结果文件下载到本地，然后让kustomize指向它，这时利用软件的 `-l` 参数，你就完全没必要来回折腾了，如果缓存目录（例如prod/rendered/helm/helm-chart.yaml）包含helm文件它自己会直接渲染而不提出网络请求
 
 ###### --render-file-name / -n
 
