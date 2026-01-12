@@ -8,20 +8,22 @@ A Helm extension that provides GitOps-related auxiliary functions for Helm
 
 ### If you don't want to read anything
 
-Just replace the **`URLs/tags`** with your own and copy-paste to run.
+Just these three, change `remote / tag` to your own, then copy and use them directly
 
 ```bash
-# 1. Create a Git-initialized Chart
+# 1. Create a git-initialized Chart
 helm gitops create my-chart
 
-# 2. Generate an environment repository (based on the Chart remote repo + repo tag)
+# 2. Generate an environment repository (based on Chart remote repository + repository tag)
 helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 
-# 3. Generate an argo.yaml (based on the environment repo + repo tag)
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1 -t v0.5.0 -m non-prod
+# 3. Generate an argo.yaml (based on environment repository + repository tag)
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
 ```
 
-The generated content is based on information generation, so it saves a lot of trouble (referring to constantly jumping between multiple remote repositories as a human to copy and visually check, etc.). You can just manage git yourself. If you don't want to read the following content, the above three commands can also help you solve most of the trouble
+The generated content is based on information generation, so it saves a lot of trouble (referring to constantly jumping between multiple remote repositories as a human to copy and visually check, etc.). You can just manage git yourself. If you don't want to read the following content, the above three commands can also help you solve most of the trouble.
+
+`(Features marked with * in the title might help you, if you only want to spend a little time reading)`
 
 ### chart-git Chart Development Features
 
@@ -66,7 +68,9 @@ helm gitops lint
 helm gitops push                                      # Push to origin/current branch
 ```
 
-#### Version Management
+#### Version Management *
+
+One command can automatically complete version updates, automatically clean up old version tgz packages, package new version tgz, generate index.yaml, and push
 
 ```bash
 # Version management
@@ -99,24 +103,29 @@ helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 Only need to execute the above line to generate the following directory tree. You can see that a repository is created for both non-production and production environments. Each repository directory contains `.git (already initialized) + .gitignore`
 
 ```
+$ tree
 .
 |-- helm-test1-env-non-prod
 |   |-- README.md
 |   |-- dev
+|   |   |-- cd-use
 |   |   |-- kustomization.yaml
 |   |   |-- patch.yaml
 |   |   `-- values.yaml
 |   |-- staging
+|   |   |-- cd-use
 |   |   |-- kustomization.yaml
 |   |   |-- patch.yaml
 |   |   `-- values.yaml
 |   `-- test
+|       |-- cd-use
 |       |-- kustomization.yaml
 |       |-- patch.yaml
 |       `-- values.yaml
 `-- helm-test1-env-prod
     |-- README.md
     `-- prod
+        |-- cd-use
         |-- kustomization.yaml
         |-- patch.yaml
         `-- values.yaml
@@ -137,43 +146,127 @@ values.yaml is copied from the code of the corresponding tag in the remote repos
 replicaCount: 1
 ```
 
-kustomization.yaml will automatically render using the remote repository link and tag, for example the following YAML. The name will be obtained using the name attribute of Chart.yaml, and it will check whether the fullnameOverride attribute of values.yaml is empty. If not empty, it will be overwritten
+kustomization.yaml does not need special modification. Based on the remote repository, only two lines of comments are written in advance to help observe the file location and use the rendering function (line1, line3 comment locations). It can be noted that although helm is used as the rendering source here, repo and tag are not specified. This will be explained in the parameterized rendering section
 
 ```yaml
-# staging/kustomization.yaml
+# prod/kustomization.yaml
+
+# helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1.git -t v0.1.3
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-helmCharts:
-- name: 'test-nor'
-  repo: 'https://gitee.com/yuan-shuo188/helm-test1'
-  version: 'v0.1.1'
-  releaseName: 'staging'
-  valuesFile: values.yaml
+resources:
+  - rendered/helm/helm-chart.yaml
 
-patchesStrategicMerge:
-  - patch.yaml
+# patchesStrategicMerge:
+#   - patch.yaml
 ```
 
-#### View Chart Version Used by Each Environment
+patch.yaml is empty by default
 
-Just one command:
+```yaml
+# prod/patch.yaml
+```
+
+#### Parameterized Rendering *
+
+##### Command
+
+Just look at the command:
 
 ```bash
-helm gitops env-version
+# -e/--env environment you want to render
+# -r/--remote remote repository link
+# -t/--tag remote repository tag
+# -l/--use-local-cache use existing local files for rendering
+# -n/--render-file-name custom naming for rendering result
+helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1.git -t v0.1.3
 ```
 
-The effect is as follows, so there is no need to open each environment directory one by one to find the version written somewhere in the file
+After executing the command, you can get a yaml result file rendered based on helm chart and processed by kustomize
+
+##### Explanation
+
+###### --remote / -r
+
+remote uses a git repository link. This part directly saves the publishing operation. **<u>Your helm chart repository only needs to have index.yaml and the corresponding tgz package</u>** (and if you use the version management function of this software, these two things will be automatically built without you worrying). The program will go to the repository raw based on remote to find index.yaml, then use its urls attribute to get the tgz file name, then concatenate it with remote/tag to form the download link of the chart package file, get the charts directory in the corresponding environment, then render the helm yaml file, and then use kustomize for further rendering (if you don't have this software, it will automatically skip and only render to helm)
+
+###### --use-local-cache / -l
+
+If using kustomize's helm function, letting it point to a helm chart is fine. However, if you need to repeatedly debug and generate, continuous network requests are unnecessary. At this time, you might download the helm rendering result file locally and let kustomize point to it. At this time, using the software's `-l` parameter, you don't need to go back and forth. If the cache directory contains helm files, it will directly render without making network requests
+
+###### --render-file-name / -n
+
+Override the naming of the rendering result file (there is a default naming but maybe you have other naming ideas)
+
+##### A Small Case
+
+First submit a new version in the chart repository
 
 ```bash
-$ helm gitops env-version
-dev: v0.1.1
-staging: v0.1.1
-test: v0.1.1
+helm gitops version -l major -m main
 ```
 
-### argocd-yaml Generation Features
+Then you can use the tree command to see that index and tgz are ready. You can see that the tag automatically upgrades to 2.0.0 (major-level update):
+
+```bash
+|-- index.yaml
+|-- test-nor-2.0.0.tgz
+```
+
+Then you can use the command to automatically build the environment repository. Here we choose the production repository for demonstration
+
+```bash
+helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v2.0.0
+cd helm-test1-env-prod
+|-- README.md
+`-- prod
+    |-- cd-use
+    |-- kustomization.yaml
+    |-- patch.yaml
+    `-- values.yaml
+```
+
+At this time, open `kustomization.yaml` with any editor, and you can see that the comment on the third line has prepared the rendering command for you:
+
+```bash
+helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1 -t v2.0.0
+```
+
+After execution, use the tree command to see what changes have occurred in the directory:
+
+```
+|-- README.md
+`-- prod
+    |-- cd-use
+    |-- kustomization.yaml
+    |-- patch.yaml
+    |-- rendered
+    |   |-- helm
+    |   |   `-- helm-chart.yaml
+    |   `-- kustomize
+    |       `-- test-nor-2.0.0.yaml
+    `-- values.yaml
+```
+
+You can see that the rendering is complete, and an extra directory called rendered has been added, in which:
+
+* `helm-chart.yaml` is the helm rendering result
+
+* `test-nor-2.0.0.yaml` is the kustomize rendering result based on `helm-chart.yaml`
+
+This is the end. It only took three commands in total (you can put the yaml you need to deploy into the `cd-use` directory for the continuous delivery program to use). Because the rendering is parameterized, if you want to modify the tag or repo, you can adjust the comment prepared for you, then copy the comment command and render with one click.
+
+Explanation of why not to use kustomize's helm-chart parameter, but directly control the rendering source by repo+version:
+
+* kustomize needs a helm repository, not a git repository. Not all hosting platforms have rich features like GitHub pages
+
+* kustomize and helm are not particularly compatible (although kustomize provides helm functionality, helm's changes in v4+ versions cause kustomize to report many parameter errors when using old commands). The parameterized rendering function separates and decouples helm rendering and kustomize rendering. There is no dependency between the two:
+
+`helm-chart.git -> (helm render) -> helm-chart.yaml -> (kustomize render) -> final.yaml`
+
+### argocd-yaml Generation Features (in deving)
 
 Use this tool to save time writing argocd.yaml
 
@@ -339,3 +432,4 @@ chmod +x $HELM_PLUGIN_DIR/bin/gitops
 * git (version >= 2.23)
 * helm
 * helm-unitest (optional, can be installed by running **`helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false`**)
+* kustomize (optional; if not installed, rendering will skip kustomize and use Helm only)

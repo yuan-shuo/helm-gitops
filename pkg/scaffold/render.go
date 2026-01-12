@@ -108,7 +108,8 @@ func RenderEnv(envName string, remoteChartURL string, chartTag string, ifUseLoca
 		return err
 	}
 	// 清理
-	_ = os.Remove(chartsDir)
+	// _ = os.Remove(chartsDir)
+	_ = os.RemoveAll(chartsDir)
 
 	if kustExist {
 		if err := renderKustomize(envDir, chartName, renderFileName); err != nil {

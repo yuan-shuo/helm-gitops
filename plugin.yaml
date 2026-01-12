@@ -1,5 +1,5 @@
 name: "gitops"
-version: "0.5.0"
+version: "0.5.1"
 usage: "Helm GitOps utilities for managing Helm charts with GitOps workflows"
 description: |
   A Helm plugin that provides GitOps-related helper functions for Helm charts.

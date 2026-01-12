@@ -19,7 +19,9 @@ helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
 ```
 
-生成内容都是基于信息生成所以省掉很多麻烦（指以人类之躯在多个远程仓库不停跳转复制肉眼检查等），自己敲 git 管理就行，如果下面的东西你都不想看，上面三条也能帮你解决大部分麻烦了
+生成内容都是基于信息生成所以省掉很多麻烦（指以人类之躯在多个远程仓库不停跳转复制肉眼检查等），自己敲 git 管理就行，如果下面的东西你都不想看，上面三条也能帮你解决大部分麻烦了。
+
+`（标题中被 * 标记的功能也许能够帮助你，如果你只想花一点时间来看看的话）`
 
 ### chart-git 图表开发功能
 
@@ -211,18 +213,58 @@ helm gitops version -l major -m main
 |-- test-nor-2.0.0.tgz
 ```
 
-然后可以使用指令自动构建环境仓库了
+然后可以使用指令自动构建环境仓库了，这里选择生产仓库用于演示
 
 ```bash
+helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v2.0.0
+cd helm-test1-env-prod
+|-- README.md
+`-- prod
+    |-- cd-use
+    |-- kustomization.yaml
+    |-- patch.yaml
+    `-- values.yaml
 ```
 
+这时随便用什么编辑器打开 `kustomization.yaml`，能看到第三行的注释已经为你准备好渲染指令了：
 
+```bash
+helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1 -t v2.0.0
+```
 
+执行后来用tree指令看一看目录发生什么变化：
 
+```
+|-- README.md
+`-- prod
+    |-- cd-use
+    |-- kustomization.yaml
+    |-- patch.yaml
+    |-- rendered
+    |   |-- helm
+    |   |   `-- helm-chart.yaml
+    |   `-- kustomize
+    |       `-- test-nor-2.0.0.yaml
+    `-- values.yaml
+```
 
+可以看到已经渲染好了，多出来一个叫redered的目录，其中：
 
+* `helm-chart.yaml` 为helm渲染结果
 
-### argocd-yaml 生成功能
+* `test-nor-2.0.0.yaml` 为kustomize基于 `helm-chart.yaml` 的渲染结果
+
+这样就结束了，总共才三条指令就结束了（可以把你需要部署的yaml放入 `cd-use` 目录供持续交付程序使用）。因为渲染是参数化的，想要修改tag或者repo可以去调整那条帮你写好的注释，然后复制注释指令一键渲染就行。
+
+关于为什么不用kustomize的helm-chart参数，直接由repo+version控制渲染源的解释：
+
+* kust需要的是helm仓库而不是git仓库，并不是所有托管平台都有github那样丰富的功能例如pages
+
+* kust和helm并不是特别兼容（尽管kust提供了helm功能，但是helm目前在v4+版本的改动让kust在使用旧指令调用时会报很多参数错误）。参数化渲染功能让helm渲染和kust渲染分离解耦，二者之间没有依赖关系：
+
+`helm-chart.git -> (helm render) -> helm-chart.yaml -> (kust render) -> final.yaml`
+
+### argocd-yaml 生成功能 (in deving)
 
 使用此工具可以节省编写argocd.yaml的时间
 
@@ -388,3 +430,4 @@ chmod +x $HELM_PLUGIN_DIR/bin/gitops
 * git（version>=2.23）
 * helm
 * helm-unitest (可选，可以通过执行 **`helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false`** 来安装)
+* kustomize（可选，未安装时，渲染会跳过kust仅用helm）
