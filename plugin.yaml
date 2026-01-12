@@ -13,5 +13,5 @@ description: |
   - Local lint checks (helm lint + unittest)
   - Push to remote with protection branch checks
   - Version management and release automation
-command: "$HELM_PLUGIN_DIR/bin/gitops"
+command: "$HELM_PLUGIN_DIR/gitops"
 ignoreFlags: false
