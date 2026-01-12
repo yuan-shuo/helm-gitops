@@ -16,11 +16,11 @@ spec:
     repoURL: '{{ENV_REPO_URL}}'
     targetRevision: '{{ENV_REPO_TAG}}'
     path: prod
+    kustomize: {}
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: prod # [may need action] Adjust to the namespace required for the production environment
   syncPolicy:
-    automated: false
     retry:
       limit: 5
       backoff:

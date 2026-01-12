@@ -1,1 +1,0 @@
-./gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1

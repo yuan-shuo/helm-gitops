@@ -3,7 +3,9 @@ package helm
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/yuan-shuo/helm-gitops/pkg/git"
 	"github.com/yuan-shuo/helm-gitops/pkg/utils"
@@ -62,7 +64,7 @@ func BumpVersionAndSave(newVer string) (string, error) {
 func BumpWithPushAndPR(curVersion string, level string, PRmarkText string, tagSuffix string) error {
 
 	newVer := BumpString(curVersion, level)
-	newTagByVerWithSuffix := newVer + "-" + tagSuffix
+	newTagByVerWithSuffix := addSuffixToTag(newVer, tagSuffix)
 
 	// 1. 创建 release 分支（复用 checkout）
 	releaseBranch := "release/v" + newTagByVerWithSuffix
@@ -92,10 +94,29 @@ func BumpWithPushAndPR(curVersion string, level string, PRmarkText string, tagSu
 
 }
 
+func packChartAndIndex(chartDir string) error {
+	// 1. 清理旧 tgz（只在 chartDir 根目录）
+	entries, _ := os.ReadDir(chartDir)
+	for _, e := range entries {
+		if e.Type().IsRegular() && strings.HasSuffix(e.Name(), ".tgz") {
+			_ = os.Remove(filepath.Join(chartDir, e.Name()))
+		}
+	}
+
+	// 2. 打包 + 生成索引
+	if err := execCommand("helm", "package", chartDir); err != nil {
+		return fmt.Errorf("helm package failed: %w", err)
+	}
+	if err := execCommand("helm", "repo", "index", chartDir); err != nil {
+		return fmt.Errorf("helm repo index failed: %w", err)
+	}
+	return nil
+}
+
 func BumpDirectlyOnDefaultBranch(curVersion string, level string, PRmarkText string, tagSuffix string) error {
 
 	newVer := BumpString(curVersion, level)
-	newTagByVerWithSuffix := newVer + "-" + tagSuffix
+	newTagByVerWithSuffix := addSuffixToTag(newVer, tagSuffix)
 
 	// 提交不带 PR 标记的 commit 并执行 lint
 	commitMsg := "main-bump: v" + newTagByVerWithSuffix
@@ -131,6 +152,11 @@ func changeChartVersionAndCommitWithLint(newVer string, commitMsg string, protec
 			return git.ErrProtected(cur)
 		}
 	}
+
+	if err := packChartAndIndex("."); err != nil {
+		return err
+	}
+
 	// 2.添加到缓存区
 	if err := git.Add("."); err != nil {
 		return err
@@ -145,4 +171,11 @@ func changeChartVersionAndCommitWithLint(newVer string, commitMsg string, protec
 	}
 
 	return nil
+}
+
+func addSuffixToTag(tag string, suffix string) string {
+	if suffix == "" {
+		return tag
+	}
+	return tag + "-" + suffix
 }

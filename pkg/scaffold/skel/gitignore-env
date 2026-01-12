@@ -1,0 +1,80 @@
+# Helm chart & local build artefacts
+*.tgz
+*.lock
+requirements.lock
+Chart.lock
+
+# If you don't need to track the rendering results of helm, you can remove the annotation here
+# helm/
+
+# Helm 3 dependency directory
+charts/
+
+# Temporary package outputs
+*.tar.gz
+*.tgz.prov
+
+# Local values overrides (sensitive or per-dev)
+values.local.yaml
+values.*.local.yaml
+*.local.values
+*.secret.values
+*.secrets.yaml
+secrets.yaml
+
+# K8s generated secrets / tls
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# Kustomize build output
+kustomize.build.*
+
+# Kubeconfig / cloud credentials
+kubeconfig*
+*.kubeconfig
+gcp-key.json
+aws-credentials.json
+azure-creds.json
+credentials.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Go / binaries (if you embed controllers or tests)
+bin/
+dist/
+vendor/
+
+# Helm unittest / test snapshots
+__snapshot__/
+*.test.yaml.snap
+
+# Coverage / CI reports
+coverage.txt
+*.out
+*.coverage
+junit.xml
+report.xml
+
+# Temporary / backup
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# Git merge / rebase
+*.merge
+*.rebase
+
+# OS
+.DS_Store
+desktop.ini

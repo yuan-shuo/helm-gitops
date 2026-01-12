@@ -10,8 +10,8 @@ import (
 	"github.com/yuan-shuo/helm-gitops/pkg/utils"
 )
 
-//go:embed skel/gitignore
-var gitIgnore string
+//go:embed skel/gitignore-chart
+var gitIgnoreChart string
 
 //go:embed skel/auto-test-pr.yaml
 var autoTestPrYAML string
@@ -22,7 +22,7 @@ var autoTagYAML string
 // 把 embed 内容写进 chart
 func writeChartSkel(root string, withActions bool, initCommitMessage string, prMarkText string) error {
 	// 必写：gitignore
-	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnore, 0644); err != nil {
+	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnoreChart, 0644); err != nil {
 		return err
 	}
 	// 可选：actions
@@ -57,6 +57,9 @@ func writeChartSkel(root string, withActions bool, initCommitMessage string, prM
 	return nil
 }
 
+//go:embed skel/gitignore-env
+var gitIgnoreEnv string
+
 //go:embed skel/kustomization.yaml
 var envKustomizationYAML string
 
@@ -89,10 +92,10 @@ func writeEnvSkel(root string, chartValues string, remoteChartUrl string, chartT
 	}
 
 	// 各仓库根目录下其他文件创建
-	if err := embedEnvRootFiles(devDir, gitIgnore, devSuffixOfDir, remoteChartUrl, EnvInitCommitMessage); err != nil {
+	if err := embedEnvRootFiles(devDir, gitIgnoreEnv, devSuffixOfDir, remoteChartUrl, EnvInitCommitMessage); err != nil {
 		return err
 	}
-	if err := embedEnvRootFiles(prodDir, gitIgnore, prodSuffixOfDir, remoteChartUrl, EnvInitCommitMessage); err != nil {
+	if err := embedEnvRootFiles(prodDir, gitIgnoreEnv, prodSuffixOfDir, remoteChartUrl, EnvInitCommitMessage); err != nil {
 		return err
 	}
 
@@ -177,7 +180,7 @@ func embedEnvFiles(root, env, chartName, chartValues, remoteChartUrl, chartTag s
 	// 先搞到一个临时的 kustomization.yaml 全文 然后渲染变量
 	kustomizationContent := strings.ReplaceAll(envKustomizationYAML, "{{ENV}}", env)
 	// 此部分将 repo 仓库下的 Chart.yaml 中的 name 属性渲染到 kustomization.yaml 中
-	kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{CHART_NAME}}", chartName)
+	// kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{CHART_NAME}}", chartName)
 	kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{REMOTE_HELM_CHART_REPO}}", remoteChartUrl)
 	kustomizationContent = strings.ReplaceAll(kustomizationContent, "{{REMOTE_HELM_CHART_TAG}}", chartTag)
 	if err := utils.WriteFile(filepath.Join(root, env, "kustomization.yaml"), kustomizationContent, 0644); err != nil {
@@ -186,6 +189,9 @@ func embedEnvFiles(root, env, chartName, chartValues, remoteChartUrl, chartTag s
 	// 必写：patch.yaml
 	patchContent := strings.ReplaceAll(envPatchYAML, "{{ENV}}", env)
 	if err := utils.WriteFile(filepath.Join(root, env, "patch.yaml"), patchContent, 0644); err != nil {
+		return err
+	}
+	if err := utils.WriteFile(filepath.Join(root, env, "cd-use", ".gitkeep"), "", 0644); err != nil {
 		return err
 	}
 
@@ -208,7 +214,7 @@ func embedEnvRootFiles(dir, gitIgnore, suffixOfDir, remoteChartUrl, EnvInitCommi
 	}
 
 	// 3. git init
-	if err := git.Init(dir, suffixOfDir+EnvInitCommitMessage); err != nil {
+	if err := git.Init(dir, fmt.Sprintf("%s %s", suffixOfDir, EnvInitCommitMessage)); err != nil {
 		fmt.Println("warning: git init failed:", err)
 	} else {
 		fmt.Printf("✅  a env repo for %q created with GitOps scaffold & initial commit.\n", remoteChartUrl)

@@ -64,7 +64,9 @@ helm gitops lint
 helm gitops push                                      # 推送到 origin/当前分支
 ```
 
-#### 版本管理
+#### 版本管理 *
+
+一行指令就能够自动完成版本更新，自动清理旧版本打包tgz，新版本tgz打包，index.yaml生成，推送
 
 ```bash
 # 版本管理
@@ -97,24 +99,29 @@ helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 仅需执行上面一行即可生成如下目录树，可以看到为非生产环境和生产环境各创建了一个仓库，每个仓库目录下同时包含 `.git(已经初始化过) + .gitignore`
 
 ```
+$ tree
 .
 |-- helm-test1-env-non-prod
 |   |-- README.md
 |   |-- dev
+|   |   |-- cd-use
 |   |   |-- kustomization.yaml
 |   |   |-- patch.yaml
 |   |   `-- values.yaml
 |   |-- staging
+|   |   |-- cd-use
 |   |   |-- kustomization.yaml
 |   |   |-- patch.yaml
 |   |   `-- values.yaml
 |   `-- test
+|       |-- cd-use
 |       |-- kustomization.yaml
 |       |-- patch.yaml
 |       `-- values.yaml
 `-- helm-test1-env-prod
     |-- README.md
     `-- prod
+        |-- cd-use
         |-- kustomization.yaml
         |-- patch.yaml
         `-- values.yaml
@@ -135,41 +142,85 @@ values.yaml 是从远程仓库对应tag的代码中复制过来的，这样就�
 replicaCount: 1
 ```
 
-kustomization.yaml 会利用远程仓库链接及tag自动渲染例如下方yaml，其中name会利用Chart.yaml的name属性进行获取，同时判断values.yaml的fullnameOverride属性是否为空，非空则覆盖
+kustomization.yaml 并不需要特别修改，根据远程仓库提前协助写入的只有两行注释，帮助观察文件所在位置以及使用渲染功能（line1, lin3注释处），可以注意到这里尽管使用helm作为渲染源但并没有指定repo和tag，这会在后续参数化渲染部分解释
 
 ```yaml
-# staging/kustomization.yaml
+# prod/kustomization.yaml
+
+# helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1.git -t v0.1.3
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-helmCharts:
-- name: 'test-nor'
-  repo: 'https://gitee.com/yuan-shuo188/helm-test1'
-  version: 'v0.1.1'
-  releaseName: 'staging'
-  valuesFile: values.yaml
+resources:
+  - rendered/helm/helm-chart.yaml
 
-patchesStrategicMerge:
-  - patch.yaml
+# patchesStrategicMerge:
+#   - patch.yaml
 ```
 
-#### 查看各环境使用的 Chart 版本
+patch.yaml默认为空
 
-只需一行命令即可：
+```yaml
+# prod/patch.yaml
+```
+
+#### 参数化渲染 *
+
+##### 指令
+
+直接看指令：
 
 ```bash
-helm gitops env-version
+# -e/--env 想要渲染的环境
+# -r/--remote 远程仓库链接
+# -t/--tag 远程仓库 tag
+# -l/--use-local-cache 使用本地已有的文件渲染
+# -n/--render-file-name 自定义命名渲染结果
+helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1.git -t v0.1.3
 ```
 
-效果如下，这样便不再需要逐个打开各个环境目录，寻找文件中不知何处写到的版本了
+执行指令后便可得到一份基于helm chart，经过kustomize渲染的yaml结果文件
+
+##### 说明
+
+###### --remote / -r
+
+remote使用的是git仓库链接，此部分直接省去了发布操作，**<u>你的helm chart仓库只需要有index.yaml和对应的tgz包就足够了</u>**（而且如果你使用的是本软件的版本管理功能，这两个东西会自动构建不需要你操心），程序会基于remote前往仓库raw寻找index.yaml，随后利用其内部的urls属性获得tgz文件名，随后与remote/tag拼接形成chart打包文件的下载链接，获取到对应环境下的charts目录，随后渲染出helm的yaml文件，然后利用kustomize进一步渲染（如果你没有这个软件会自动跳过，仅渲染到helm为止）
+
+###### --use-local-cache / -l
+
+如果使用kustomize的helm功能，让其指向一个helm chart没问题，可以，但是如果需要反复调试生成的话，不停的网络请求是没有必要的，这时你可能会把helm渲染结果文件下载到本地，然后让kustomize指向它，这时利用软件的 `-l` 参数，你就完全没必要来回折腾了，如果缓存目录包含helm文件它自己会直接渲染而不提出网络请求
+
+###### --render-file-name / -n
+
+覆盖渲染结果文件的命名（存在默认命名但也许你会有其他命名的想法）
+
+##### 一个小案例
+
+先在chart仓库提交一个新版本
 
 ```bash
-$ helm gitops env-version
-dev: v0.1.1
-staging: v0.1.1
-test: v0.1.1
+helm gitops version -l major -m main
 ```
+
+然后用tree指令能看到index和tgz都准备好了，可以看到tag自动升级到2.0.0（major级更新）：
+
+```bash
+|-- index.yaml
+|-- test-nor-2.0.0.tgz
+```
+
+然后可以使用指令自动构建环境仓库了
+
+```bash
+```
+
+
+
+
+
+
 
 ### argocd-yaml 生成功能
 

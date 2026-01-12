@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +19,61 @@ import (
 // 	cmd.Dir = dir
 // 	return cmd.Run()
 // }
+
+// untarStripComponents 类似 tar --strip-components=N 的纯 Go 实现
+func UntarStripComponents(tgzPath, dst string, strip int) error {
+	f, err := os.Open(tgzPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	gzr, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// 去掉前 strip 级目录
+		parts := strings.Split(filepath.Clean(hdr.Name), string(os.PathSeparator))
+		if len(parts) <= strip {
+			continue
+		}
+		relPath := filepath.Join(parts[strip:]...)
+		target := filepath.Join(dst, relPath)
+
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return err
+			}
+			fw, err := os.Create(target)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(fw, tr); err != nil {
+				fw.Close()
+				return err
+			}
+			fw.Close()
+		}
+	}
+	return nil
+}
 
 // NormalizeToNS 把任意字符串转换成符合 K8s 命名空间规则的字符串：
 // 只能包含小写字母、数字、连字符 "-"；长度 1-63；首尾必须是字母或数字。

@@ -1,7 +1,5 @@
 # Helm chart & local build artefacts
-*.tgz
 *.lock
-charts/*.tgz
 requirements.lock
 Chart.lock
 
