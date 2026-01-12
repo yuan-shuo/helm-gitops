@@ -16,7 +16,7 @@ helm gitops create my-chart
 helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 
 # 3.生成一个argo.yaml (基于环境仓库 + 仓库tag)
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1 -t v0.5.0 -m non-prod
 ```
 
 生成内容都是基于信息生成所以省掉很多麻烦（指以人类之躯在多个远程仓库不停跳转复制肉眼检查等），自己敲 git 管理就行，如果下面的东西你都不想看，上面三条也能帮你解决大部分麻烦了。
@@ -266,7 +266,7 @@ helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1 -t v
 
 `helm-chart.git -> (helm render) -> helm-chart.yaml -> (kust render) -> final.yaml`
 
-### argocd-yaml 生成功能 (in deving)
+### argocd-yaml 生成功能
 
 使用此工具可以节省编写argocd.yaml的时间
 
@@ -276,14 +276,16 @@ helm gitops render-env -e prod -r https://gitee.com/yuan-shuo188/helm-test1 -t v
 
 ```bash
 # 基于环境仓库的 remote 链接直接生成argo-yaml: 
-# -r/--remote 指定环境仓库远程链接
+# -r/--remote 指定环境仓库远程链接 (确保仓库可达)
 # -t/--tag 指定生成 argo-yaml 时使用的远程仓库的 tag
 # -m/--mode 指定生成模式: non-prod|prod, 会生成适用于不同环境下的 yaml 文件
 # -d/--dry-run 不生成文件, 仅打印 argo-yaml 内容
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod --dry-run
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1 -t v1.0.0 -m prod --dry-run
 ```
 
 之所以使用两项环境仓库+两份argocd-yaml是为了确保两环境独立审计，仓库及tag隔离，避免提交历史杂糅。同时argocd-yaml并不指向helm chart仓库而是仅指向环境仓库，因为此前环境仓库中已经指定过helm chart作为渲染源了，所以argo不需要同时指向两个仓库造成不必要的组合混乱，最终呈现可以示意为：`argocd -> env-repo -> helm-chart`
+
+而且由前述内容可知，argocd或者其他持续交付程序仅需指向env/cd-use目录，该目录内部存放kust+helm / helm渲染结果yaml，是一份可以直接被kubectl apply的文件，这代表argo或者其他持续交付软件不需要安装额外的插件，同时yaml文件会在 helm repo / env repo 流程中多次被审查，并以所见即所得的最终完整结果yaml存放在env/cd-use目录下
 
 #### 目录树
 
@@ -347,14 +349,14 @@ spec:
     metadata:
       name: 'helm-env-non-prod1-{{env}}'
     spec:
-      project: default
+      project: default # [may need action] Adjust to the project required for the production environment
       source:
         repoURL: 'https://gitee.com/yuan-shuo188/helm-env-non-prod1'
         targetRevision: 'v0.5.0'
-        path: '{{env}}'
+        path: '{{env}}/cd-use'
       destination:
         server: https://kubernetes.default.svc
-        namespace: 'helm-env-non-prod1-{{env}}'
+        namespace: 'helm-env-non-prod1-{{env}}' # [may need action] Adjust to the namespace required for the production environment
       syncPolicy:
         automated:
           prune: true
@@ -368,18 +370,20 @@ spec:
 仅指定prod环境作为控制源，执行如下指令后生成 yaml 文件
 
 ```bash
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod
+helm gitops create-argo -r https://github.com/yuan-shuo/helm-env1 -t v1.0.0 -m prod
 ```
 
-生成的argo-yaml中automated默认为关闭
+生产模式（`--mode prod`）生成的argo-yaml中automated默认为关闭，并且在第三行生成了一条复制即用的手动同步指令注释
 
 ```yaml
-# helm-env-prod1-argo-prod.yaml
+# helm-env1-argo-prod.yaml
+# auto sync in prod environment is closed by default, you can use below command to sync by hand:
+# argocd app sync helm-env1-argo-prod
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: 'helm-env-prod1-argo-prod'
+  name: 'helm-env1-argo-prod' # [may need action] If you want to use a different name, please adjust it here
   namespace: argocd
   # annotations:
   #   # canary analysis template (optional, read by Argo Rollouts AnalysisTemplate)
@@ -387,16 +391,15 @@ metadata:
   #   canary.argo.io/step-weight: 
   #   canary.argo.io/step-duration: 
 spec:
-  project: default
+  project: default # [may need action] Adjust to the project required for the production environment
   source:
-    repoURL: 'https://gitee.com/yuan-shuo188/helm-env-prod1'
+    repoURL: 'https://github.com/yuan-shuo/helm-env1'
     targetRevision: 'v1.0.0'
-    path: prod
+    path: prod/cd-use
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: prod
+    namespace: prod # [may need action] Adjust to the namespace required for the production environment
   syncPolicy:
-    automated: false
     retry:
       limit: 5
       backoff:
@@ -412,19 +415,7 @@ spec:
 ### 使用 helm plugin install
 
 ```bash
-helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.1-pre/helm-gitops_0.5.1-pre_linux_amd64.tar.gz
-```
-
-### 使用二进制文件
-
-- 前往：[Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases)下载对应操作系统的二进制文件
-
-- 随后将解压得到的gitops二进制文件放在`$HELM_PLUGIN_DIR/bin/` 目录下
-
-- 给予gitops二进制文件执行权限
-
-```bash
-chmod +x $HELM_PLUGIN_DIR/bin/gitops
+helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.2/helm-gitops_0.5.2_linux_amd64.tar.gz
 ```
 
 ## 环境需求

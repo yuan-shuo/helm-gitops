@@ -18,7 +18,7 @@ helm gitops create my-chart
 helm gitops create-env -r https://gitee.com/yuan-shuo188/helm-test1 -t v0.1.1
 
 # 3. Generate an argo.yaml (based on environment repository + repository tag)
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1  -t v0.5.0 -m non-prod
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-non-prod1 -t v0.5.0 -m non-prod
 ```
 
 The generated content is based on information generation, so it saves a lot of trouble (referring to constantly jumping between multiple remote repositories as a human to copy and visually check, etc.). You can just manage git yourself. If you don't want to read the following content, the above three commands can also help you solve most of the trouble.
@@ -171,7 +171,7 @@ patch.yaml is empty by default
 
 #### Parameterized Rendering *
 
-If you only need the raw Helm-rendered output, just leave the `kustomization.yaml` untouched (or keep it empty). If Kustomize isn’t installed, the plugin silently skips the Kustomize step and you’ll find the plain Helm result at：
+If you only need the raw Helm-rendered output, just leave the `kustomization.yaml` untouched (or keep it empty). If Kustomize isn't installed, the plugin silently skips the Kustomize step and you'll find the plain Helm result at：
 
 `<your_env>/rendered/helm/helm-chart.yaml`
 
@@ -198,7 +198,7 @@ remote uses a git repository link. This part directly saves the publishing opera
 
 ###### --use-local-cache / -l
 
-If using kustomize's helm function, letting it point to a helm chart is fine. However, if you need to repeatedly debug and generate, continuous network requests are unnecessary. At this time, you might download the helm rendering result file locally and let kustomize point to it. At this time, using the software's `-l` parameter, you don't need to go back and forth. If the cache directory contains helm files, it will directly render without making network requests
+If using kustomize's helm function, letting it point to a helm chart is fine. However, if you need to repeatedly debug and generate, continuous network requests are unnecessary. At this time, you might download the helm rendering result file locally and let kustomize point to it. At this time, using the software's `-l` parameter, you don't need to go back and forth. If the cache directory (e.g., prod/rendered/helm/helm-chart.yaml) contains helm files, it will directly render without making network requests
 
 ###### --render-file-name / -n
 
@@ -270,7 +270,7 @@ Explanation of why not to use kustomize's helm-chart parameter, but directly con
 
 `helm-chart.git -> (helm render) -> helm-chart.yaml -> (kustomize render) -> final.yaml`
 
-### argocd-yaml Generation Features (in deving)
+### argocd-yaml Generation Features
 
 Use this tool to save time writing argocd.yaml
 
@@ -280,14 +280,16 @@ By specifying different parameters, you can generate corresponding YAML for both
 
 ```bash
 # Generate argo-yaml directly based on the remote link of the environment repository:
-# -r/--remote specifies the environment repository remote link
+# -r/--remote specifies the environment repository remote link (ensure repository is reachable)
 # -t/--tag specifies the tag of the remote repository used when generating argo-yaml
 # -m/--mode specifies the generation mode: non-prod|prod, will generate yaml files suitable for different environments
 # -d/--dry-run does not generate files, only prints the argo-yaml content
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod --dry-run
+helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1 -t v1.0.0 -m prod --dry-run
 ```
 
 The reason for using two environment repositories + two argocd-yaml files is to ensure independent auditing for both environments, with repository and tag isolation, avoiding mixed commit histories. At the same time, argocd-yaml does not point to the helm chart repository but only to the environment repository, because the environment repository has already specified the helm chart as the rendering source, so argo does not need to point to two repositories at the same time causing unnecessary combination confusion. The final presentation can be illustrated as: `argocd -> env-repo -> helm-chart`
+
+Moreover, as mentioned above, argocd or other continuous delivery programs only need to point to the env/cd-use directory, which stores the kust+helm / helm rendering result yaml files. This is a file that can be directly applied by kubectl apply. This means that argo or other continuous delivery software does not need to install additional plugins. At the same time, the yaml files will be reviewed multiple times during the helm repo / env repo process, and stored in the env/cd-use directory as the final complete result yaml in a WYSIWYG manner
 
 #### Directory Tree
 
@@ -351,14 +353,14 @@ spec:
     metadata:
       name: 'helm-env-non-prod1-{{env}}'
     spec:
-      project: default
+      project: default # [may need action] Adjust to the project required for the production environment
       source:
         repoURL: 'https://gitee.com/yuan-shuo188/helm-env-non-prod1'
         targetRevision: 'v0.5.0'
-        path: '{{env}}'
+        path: '{{env}}/cd-use'
       destination:
         server: https://kubernetes.default.svc
-        namespace: 'helm-env-non-prod1-{{env}}'
+        namespace: 'helm-env-non-prod1-{{env}}' # [may need action] Adjust to the namespace required for the production environment
       syncPolicy:
         automated:
           prune: true
@@ -372,18 +374,20 @@ spec:
 Only specify the prod environment as the control source. After executing the following command, a YAML file is generated
 
 ```bash
-helm gitops create-argo -r https://gitee.com/yuan-shuo188/helm-env-prod1  -t v1.0.0 -m prod
+helm gitops create-argo -r https://github.com/yuan-shuo/helm-env1 -t v1.0.0 -m prod
 ```
 
-In the generated argo-yaml, automated is disabled by default
+In the production mode (`--mode prod`) generated argo-yaml, automated is disabled by default, and a copy-and-paste manual sync command comment is generated on the third line
 
 ```yaml
-# helm-env-prod1-argo-prod.yaml
+# helm-env1-argo-prod.yaml
+# auto sync in prod environment is closed by default, you can use below command to sync by hand:
+# argocd app sync helm-env1-argo-prod
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: 'helm-env-prod1-argo-prod'
+  name: 'helm-env1-argo-prod' # [may need action] If you want to use a different name, please adjust it here
   namespace: argocd
   # annotations:
   #   # canary analysis template (optional, read by Argo Rollouts AnalysisTemplate)
@@ -391,16 +395,15 @@ metadata:
   #   canary.argo.io/step-weight: 
   #   canary.argo.io/step-duration: 
 spec:
-  project: default
+  project: default # [may need action] Adjust to the project required for the production environment
   source:
-    repoURL: 'https://gitee.com/yuan-shuo188/helm-env-prod1'
+    repoURL: 'https://github.com/yuan-shuo/helm-env1'
     targetRevision: 'v1.0.0'
-    path: prod
+    path: prod/cd-use
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: prod
+    namespace: prod # [may need action] Adjust to the namespace required for the production environment
   syncPolicy:
-    automated: false
     retry:
       limit: 5
       backoff:
@@ -416,19 +419,7 @@ spec:
 ### Using helm plugin install
 
 ```bash
-helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.1-pre/helm-gitops_0.5.1-pre_linux_amd64.tar.gz
-```
-
-### Using Binary Files
-
-- Go to: [Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases) to download the binary file for your operating system
-
-- Place the extracted `gitops` binary file in the `$HELM_PLUGIN_DIR/bin/` directory
-
-- Grant execute permissions to the gitops binary file
-
-```bash
-chmod +x $HELM_PLUGIN_DIR/bin/gitops
+helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.2/helm-gitops_0.5.2_linux_amd64.tar.gz
 ```
 
 ## Requirements
