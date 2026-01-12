@@ -20,7 +20,7 @@ spec:
       source:
         repoURL: '{{ .ENV_REPO_URL }}'
         targetRevision: '{{ .ENV_REPO_TAG }}'
-        path: '{{`{{env}}`}}'
+        path: '{{`{{env}}`}}/cd-use'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{ .ENV_REPO_NAME }}-{{`{{env}}`}}' # [may need action] Adjust to the namespace required for the production environment

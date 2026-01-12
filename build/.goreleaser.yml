@@ -24,6 +24,8 @@ builds:
 archives:
   - format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - plugin.yaml
     format_overrides:
       - goos: windows
         format: zip
