@@ -1,4 +1,6 @@
 # {{ENV_REPO_NAME}}-argo-prod.yaml
+# auto sync in prod environment is closed by default, you can use below command to sync by hand:
+# argocd app sync {{ENV_REPO_NAME}}-argo-prod
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -15,8 +17,7 @@ spec:
   source:
     repoURL: '{{ENV_REPO_URL}}'
     targetRevision: '{{ENV_REPO_TAG}}'
-    path: prod
-    kustomize: {}
+    path: prod/cd-use
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: prod # [may need action] Adjust to the namespace required for the production environment
