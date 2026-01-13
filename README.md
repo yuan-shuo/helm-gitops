@@ -418,11 +418,15 @@ spec:
 
 ## Installation
 
-### Using helm plugin install
+### Install via helm plugin
 
-```bash
-helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.2/helm-gitops_0.5.2_linux_amd64.tar.gz
-```
+1. Go to [Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases) and pick the download link for your platform and architecture.
+2. Run `helm plugin install <url>` to install the version you need.
+
+### Install via binary
+
+1. Go to [Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases) and download the binary for your platform and architecture.
+2. Move the binary to any directory in your `$PATH`.
 
 ## Requirements
 

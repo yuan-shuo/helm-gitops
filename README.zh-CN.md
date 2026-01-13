@@ -418,9 +418,13 @@ spec:
 
 ### 使用 helm plugin install
 
-```bash
-helm plugin install https://github.com/yuan-shuo/helm-gitops/releases/download/v0.5.2/helm-gitops_0.5.2_linux_amd64.tar.gz
-```
+1. 跳转到 -> [Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases) 找到你需要的平台及架构对应二进制文件的下载链接
+2. 使用 `helm plugin install <url>` 来安装你需要的版本
+
+### 使用二进制文件
+
+1. 跳转到 -> [Releases · yuan-shuo/helm-gitops](https://github.com/yuan-shuo/helm-gitops/releases) 找到你需要的平台及架构对应二进制文件的下载链接
+2. 将二进制文件移动到环境变量目录下
 
 ## 环境需求
 
