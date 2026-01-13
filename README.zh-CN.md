@@ -1,5 +1,7 @@
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/helm-gitops)](https://artifacthub.io/packages/search?repo=helm-gitops)
 
+[带有介绍的完整gitops流程使用示例](https://github.com/yuan-shuo/helm-gitops/blob/main/doc/example.zh-CN.md)
+
 # Helm-GitOps
 
 一个helm的扩展，为helm提供gitops相关辅助功能
