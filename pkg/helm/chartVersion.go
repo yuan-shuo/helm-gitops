@@ -140,6 +140,11 @@ func pushBranchAndTagTogether(tagName string) error {
 }
 
 func changeChartVersionAndCommitWithLint(newVer string, commitMsg string, protectBranch bool) error {
+	// 4.语法检查
+	if err := Lint(); err != nil {
+		return fmt.Errorf("lint check failed, push aborted: %w", err)
+	}
+
 	// 2. 改版本号（复用 BumpVersionAndSave）
 	if _, err := BumpVersionAndSave(newVer); err != nil {
 		return err
@@ -164,10 +169,6 @@ func changeChartVersionAndCommitWithLint(newVer string, commitMsg string, protec
 	// 3.提交带有PR标记的代码
 	if err := git.Commit(commitMsg); err != nil {
 		return err
-	}
-	// 4.语法检查
-	if err := Lint(); err != nil {
-		return fmt.Errorf("lint check failed, push aborted: %w", err)
 	}
 
 	return nil

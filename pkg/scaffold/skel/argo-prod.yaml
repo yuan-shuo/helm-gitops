@@ -20,7 +20,7 @@ spec:
     path: prod/cd-use
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: prod # [may need action] Adjust to the namespace required for the production environment
+    namespace: '{{ENV_REPO_NAME}}-prod' # [may need action] Adjust to the namespace required for the production environment
   syncPolicy:
     retry:
       limit: 5
