@@ -1,3 +1,5 @@
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/helm-gitops)](https://artifacthub.io/packages/search?repo=helm-gitops)
+
 # Helm-GitOps
 
 一个helm的扩展，为helm提供gitops相关辅助功能

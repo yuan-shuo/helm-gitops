@@ -1,3 +1,5 @@
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/helm-gitops)](https://artifacthub.io/packages/search?repo=helm-gitops)
+
 [中文版](https://github.com/yuan-shuo/helm-gitops/blob/main/README.zh-CN.md)
 
 # Helm-GitOps
