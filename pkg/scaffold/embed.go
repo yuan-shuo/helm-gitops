@@ -25,6 +25,10 @@ func writeChartSkel(root string, withActions bool, initCommitMessage string, prM
 	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnoreChart, 0644); err != nil {
 		return err
 	}
+	// 创建渲染结果存放目录
+	if err := utils.WriteFile(filepath.Join(root, "rendered", ".gitkeep"), "", 0644); err != nil {
+		return err
+	}
 	// 可选：actions
 	if withActions {
 		// 替换占位符

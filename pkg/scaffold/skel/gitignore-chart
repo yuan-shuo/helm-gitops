@@ -66,6 +66,7 @@ report.xml
 *.bak
 *.orig
 *.rej
+rendered/
 
 # Git merge / rebase
 *.merge

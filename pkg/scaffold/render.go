@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/yuan-shuo/helm-gitops/pkg/helm"
 	"github.com/yuan-shuo/helm-gitops/pkg/utils"
 )
 
@@ -18,6 +19,21 @@ type Values struct {
 	ENV_REPO_URL  string
 	ENV_REPO_TAG  string
 	Envs          []string
+}
+
+// 渲染图表到指定目录
+func RenderHelmChart(needLint bool, dest string) error {
+	if needLint {
+		if err := helm.Lint(); err != nil {
+			return err
+		}
+	}
+
+	renderDir := filepath.Join(".", dest)
+	if err := utils.Run(".", "helm", "template", ".", "--output-dir", renderDir); err != nil {
+		return err
+	}
+	return nil
 }
 
 func renderArgoAppSet(tmpl string, v Values) (string, error) {

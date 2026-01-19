@@ -63,6 +63,25 @@ helm gitops commit -m "ci: update" --pr --push      # Commit + push + automatic 
 helm gitops lint
 ```
 
+#### Chart Rendering
+
+This is actually used frequently, so the commands have been significantly simplified
+
+```bash
+# Direct rendering
+helm gitops r
+# Render after executing lint check
+helm gitops r -l
+# Custom rendering directory
+helm gitops r -l -d custom-render-dest
+```
+
+If you place the binary file directly in the environment variable directory, then rendering becomes even simpler, and there's nothing else you need to remember:
+
+```bash
+gitops r
+```
+
 #### Chart Push
 
 ```bash

@@ -63,6 +63,25 @@ helm gitops commit -m "ci: update" --pr --push      # 提交 + 推送 + 自动�
 helm gitops lint
 ```
 
+#### 图表渲染
+
+这个其实会频繁使用，所以大幅度简化了指令
+
+```bash
+# 直接渲染
+helm gitops r
+# 先执行 lint 检查后渲染
+helm gitops r -l
+# 自定义渲染目录
+helm gitops r -l -d custom-render-dest
+```
+
+如果你直接将二进制文件放在环境变量目录下，那么渲染就更简单了，没什么是你需要另外记忆的了：
+
+```bash
+gitops r
+```
+
 #### 图表推送
 
 ```bash
