@@ -20,7 +20,7 @@ func CreateChart(name string, withActions bool, initCommitMessage string, prMark
 	root := filepath.Join(".", name)
 
 	// 2. 写骨架
-	if err := writeChartSkel(root, withActions, initCommitMessage, prMarkText); err != nil {
+	if err := writeChartSkel(root, name, withActions, initCommitMessage, prMarkText); err != nil {
 		return err
 	}
 

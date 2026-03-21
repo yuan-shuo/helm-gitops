@@ -19,8 +19,17 @@ var autoTestPrYAML string
 //go:embed skel/auto-tag.yaml
 var autoTagYAML string
 
+//go:embed skel/servicemonitor.yaml
+var serviceMonitorYAML string
+
+//go:embed skel/prometheusrule.yaml
+var prometheusRuleYAML string
+
+//go:embed skel/helmchart-extra-values.yaml
+var helmChartExtraValues string
+
 // 把 embed 内容写进 chart
-func writeChartSkel(root string, withActions bool, initCommitMessage string, prMarkText string) error {
+func writeChartSkel(root string, name string, withActions bool, initCommitMessage string, prMarkText string) error {
 	// 必写：gitignore
 	if err := utils.WriteFile(filepath.Join(root, ".gitignore"), gitIgnoreChart, 0644); err != nil {
 		return err
@@ -29,6 +38,29 @@ func writeChartSkel(root string, withActions bool, initCommitMessage string, prM
 	if err := utils.WriteFile(filepath.Join(root, "rendered", ".gitkeep"), "", 0644); err != nil {
 		return err
 	}
+
+	// 渲染模板文件到 templates 目录
+	placeholders := map[string]string{
+		"{{CHART_NAME}}": name,
+	}
+
+	// 渲染 servicemonitor.yaml
+	serviceMonitorContent := utils.RenderFileWithPlaceholders(serviceMonitorYAML, placeholders)
+	if err := utils.WriteFile(filepath.Join(root, "templates", "servicemonitor.yaml"), serviceMonitorContent, 0644); err != nil {
+		return err
+	}
+
+	// 渲染 prometheusrule.yaml
+	prometheusRuleContent := utils.RenderFileWithPlaceholders(prometheusRuleYAML, placeholders)
+	if err := utils.WriteFile(filepath.Join(root, "templates", "prometheusrule.yaml"), prometheusRuleContent, 0644); err != nil {
+		return err
+	}
+
+	// 追加 extra values 到 values.yaml
+	if err := utils.AppendFile(filepath.Join(root, "values.yaml"), "\n"+helmChartExtraValues, 0644); err != nil {
+		return err
+	}
+
 	// 可选：actions
 	if withActions {
 		// 替换占位符
