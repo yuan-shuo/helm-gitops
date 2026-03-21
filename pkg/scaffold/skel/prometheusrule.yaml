@@ -1,0 +1,13 @@
+{{- if and .Values.prometheusRule.enabled .Values.prometheusRule.rules -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "{{CHART_NAME}}.fullname" . }}
+  labels:
+    release: {{ .Values.prometheusRule.release | default "prometheus" }}
+spec:
+  groups:
+  - name: {{ .Values.prometheusRule.groupName | default (printf "%s-promrules" (include "{{CHART_NAME}}.fullname" .)) }}
+    rules:
+    {{- toYaml .Values.prometheusRule.rules | nindent 4 }}
+{{- end }}
