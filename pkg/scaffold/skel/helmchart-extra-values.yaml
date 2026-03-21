@@ -1,0 +1,38 @@
+# Prometheus ServiceMonitor configuration
+# More information can be found here: https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.ServiceMonitor
+serviceMonitor:
+  # Enable ServiceMonitor creation
+  enabled: true
+  # Label used by Prometheus to select this ServiceMonitor
+  # Must match the serviceMonitorSelector in your Prometheus CRD
+  release: prometheus
+  # Metrics endpoint path
+  # Common values: "/metrics", "/actuator/prometheus", "/stub_status"
+  # path: "/metrics"
+  # How often to scrape metrics
+  # interval: 15s
+
+# PrometheusRule configuration
+# More information can be found here: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+prometheusRule:
+  # Enable PrometheusRule creation
+  enabled: true
+  # Label used by Prometheus to select this PrometheusRule
+  # Must match the ruleSelector in your Prometheus CRD
+  release: prometheus
+  # Alerting rules definition
+  rules:
+    - alert: NginxHighConnections
+      # PromQL expression that triggers the alert
+      expr: nginx_connections_active > 1
+      # How long the condition must be true before firing
+      for: 10s
+      # Labels for routing and grouping in Alertmanager
+      labels:
+        severity: warning   # Alert level: critical, warning, info
+      # Human-readable description of the alert
+      annotations:
+        summary: "The number of active connections in Nginx is too high"
+        description: "Current active connections: {{ $value }}"
+  # Custom rule group name
+  # groupName: fullname-promrules   # default: "<fullname>-promrules"
