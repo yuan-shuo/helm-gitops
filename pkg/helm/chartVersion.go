@@ -26,14 +26,17 @@ func GetVersion() (string, error) {
 }
 
 // BumpString 仅计算新版本号（不读写文件）
-func BumpString(oldVer, level string) string {
+func BumpString(oldVer, level string) (string, error) {
 	// 不 bump 版本号
 	if level == "no" {
-		return oldVer
+		return oldVer, nil
 	}
 	// 正常 bump 版本号逻辑
 	parts := [3]int{}
-	fmt.Sscanf(oldVer, "%d.%d.%d", &parts[0], &parts[1], &parts[2])
+	_, err := fmt.Sscanf(oldVer, "%d.%d.%d", &parts[0], &parts[1], &parts[2])
+	if err != nil {
+		return "", fmt.Errorf("invalid version format: %s, expected format like 1.2.3, err-info: %w", oldVer, err)
+	}
 	switch level {
 	case "major":
 		parts[0]++
@@ -44,7 +47,7 @@ func BumpString(oldVer, level string) string {
 	default: // patch
 		parts[2]++
 	}
-	return fmt.Sprintf("%d.%d.%d", parts[0], parts[1], parts[2])
+	return fmt.Sprintf("%d.%d.%d", parts[0], parts[1], parts[2]), nil
 }
 
 // BumpVersionAndSave 按 level +1 并写回 Chart.yaml
@@ -63,7 +66,10 @@ func BumpVersionAndSave(newVer string) (string, error) {
 
 func BumpWithPushAndPR(curVersion string, level string, PRmarkText string, tagSuffix string) error {
 
-	newVer := BumpString(curVersion, level)
+	newVer, err := BumpString(curVersion, level)
+	if err != nil {
+		return fmt.Errorf("BumpString failed: %w", err)
+	}
 	newTagByVerWithSuffix := addSuffixToTag(newVer, tagSuffix)
 
 	// 1. 创建 release 分支（复用 checkout）
@@ -115,7 +121,10 @@ func packChartAndIndex(chartDir string) error {
 
 func BumpDirectlyOnDefaultBranch(curVersion string, level string, PRmarkText string, tagSuffix string) error {
 
-	newVer := BumpString(curVersion, level)
+	newVer, err := BumpString(curVersion, level)
+	if err != nil {
+		return fmt.Errorf("BumpString failed: %w", err)
+	}
 	newTagByVerWithSuffix := addSuffixToTag(newVer, tagSuffix)
 
 	// 提交不带 PR 标记的 commit 并执行 lint

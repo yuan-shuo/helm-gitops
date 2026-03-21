@@ -48,27 +48,77 @@ func renderArgoAppSet(tmpl string, v Values) (string, error) {
 	return buf.String(), nil
 }
 
-// RenderEnv 为指定环境完成「下载-解压-渲染-构建」全流程（纯 Go 解压版）
+// RenderEnv 为指定环境完成「下载-解压-渲染-构建」全流程（纯 Go 解压）
 func RenderEnv(envName string, remoteChartURL string, chartTag string, ifUseLocalCache bool, renderFileName string) error {
-
-	// 1. 环境目录必须存在
 	envDir := filepath.Join(".", envName)
-	if _, err := os.Stat(envDir); os.IsNotExist(err) {
-		return fmt.Errorf("environment %q not found", envName)
+
+	// 1. 检查环境目录必须存在
+	if err := checkEnvDir(envDir, envName); err != nil {
+		return err
 	}
 
-	helmCache := filepath.Join(envDir, "rendered", "helm", "helm-chart.yaml")
-	if ifUseLocalCache {
-		if _, err := os.Stat(helmCache); err == nil {
-			// 文件存在，只跑 kustomize
-			if renderFileName != "" {
-				return renderKustomize(envName, "", renderFileName)
-			}
-			return renderKustomize(envName, "", "local-uname-render-result")
+	// 2. 尝试使用本地缓存，如果缓存存在则直接渲染 kustomize
+	if err := tryUseLocalCache(envDir, envName, ifUseLocalCache, renderFileName); err != nil {
+		return err
+	}
+
+	// 3. 检查必需文件（kustomization.yaml 和 values.yaml）
+	kustExist, valuesFile, err := checkRequiredFiles(envDir, envName)
+	if err != nil {
+		return err
+	}
+
+	// 4. 下载并解压 Helm Chart
+	chartName, chartUnpacked, chartsDir, err := downloadAndExtractChart(envDir, remoteChartURL, chartTag)
+	if err != nil {
+		return err
+	}
+	defer cleanupChartsDir(chartsDir)
+
+	// 5. 使用 helm template 渲染 chart
+	if err := renderHelmChart(envDir, envName, chartUnpacked, valuesFile); err != nil {
+		return err
+	}
+
+	// 6. 如果存在 kustomization.yaml，则渲染 kustomize
+	if kustExist {
+		if err := renderKustomize(envDir, chartName, renderFileName); err != nil {
+			return err
 		}
 	}
 
-	// 2. 没有 kustomization.yaml 就仅使用 values 渲染 helm chart
+	return nil
+}
+
+// checkEnvDir 检查环境目录是否存在
+func checkEnvDir(envDir, envName string) error {
+	if _, err := os.Stat(envDir); os.IsNotExist(err) {
+		return fmt.Errorf("environment %q not found", envName)
+	}
+	return nil
+}
+
+// tryUseLocalCache 尝试使用本地缓存，如果缓存存在则直接渲染 kustomize
+func tryUseLocalCache(envDir, envName string, ifUseLocalCache bool, renderFileName string) error {
+	if !ifUseLocalCache {
+		return nil
+	}
+
+	helmCache := filepath.Join(envDir, "rendered", "helm", "helm-chart.yaml")
+	if _, err := os.Stat(helmCache); err != nil {
+		return nil
+	}
+
+	// 缓存存在，只跑 kustomize
+	outputName := renderFileName
+	if outputName == "" {
+		outputName = "local-uname-render-result"
+	}
+	return renderKustomize(envName, "", outputName)
+}
+
+// checkRequiredFiles 检查必需文件，返回 kustomization 是否存在、values.yaml 路径
+func checkRequiredFiles(envDir, envName string) (bool, string, error) {
 	kustFile := filepath.Join(envDir, "kustomization.yaml")
 	kustExist := false
 	if _, err := os.Stat(kustFile); os.IsNotExist(err) {
@@ -79,39 +129,48 @@ func RenderEnv(envName string, remoteChartURL string, chartTag string, ifUseLoca
 
 	valuesFile := filepath.Join(envDir, "values.yaml")
 	if _, err := os.Stat(valuesFile); os.IsNotExist(err) {
-		return fmt.Errorf("values.yaml missing in %q", envName)
+		return false, "", fmt.Errorf("values.yaml missing in %q", envName)
 	}
 
-	// 3. 获取 tgz 下载地址并落盘
+	return kustExist, valuesFile, nil
+}
+
+// downloadAndExtractChart 下载并解压 Helm Chart，返回 chart 名称、解压路径和 charts 目录
+func downloadAndExtractChart(envDir, remoteChartURL, chartTag string) (string, string, string, error) {
 	tgzURL, err := fetchFirstTgzURL(remoteChartURL, chartTag)
 	if err != nil {
-		return err
+		return "", "", "", err
 	}
 	chartName := strings.TrimSuffix(filepath.Base(tgzURL), filepath.Ext(tgzURL))
 
 	chartsDir := filepath.Join(envDir, "charts")
 	if err := os.MkdirAll(chartsDir, 0755); err != nil {
-		return err
+		return "", "", "", err
 	}
+
 	tgzPath := filepath.Join(chartsDir, filepath.Base(tgzURL))
 	if err := downloadURL(tgzPath, joinAbsoluteURL(remoteChartURL, chartTag, tgzURL)); err != nil {
-		return fmt.Errorf("download tgz failed: %w", err)
+		return "", "", "", fmt.Errorf("download tgz failed: %w", err)
 	}
 
-	// 4. 纯 Go 解压（--strip-components=1）
 	chartUnpacked := filepath.Join(chartsDir, "chart")
 	if err := os.MkdirAll(chartUnpacked, 0755); err != nil {
-		return err
+		return "", "", "", err
 	}
 	if err := utils.UntarStripComponents(tgzPath, chartUnpacked, 1); err != nil {
-		return fmt.Errorf("untar failed: %w", err)
+		return "", "", "", fmt.Errorf("untar failed: %w", err)
 	}
 
-	// 5. helm 渲染
+	return chartName, chartUnpacked, chartsDir, nil
+}
+
+// renderHelmChart 使用 helm template 渲染 chart
+func renderHelmChart(envDir, envName, chartUnpacked, valuesFile string) error {
 	renderedHelmDir := filepath.Join(envDir, "rendered", "helm")
 	if err := os.MkdirAll(renderedHelmDir, 0755); err != nil {
 		return err
 	}
+
 	helmOut := filepath.Join(renderedHelmDir, "helm-chart.yaml")
 	helmCmd := exec.Command("helm", "template", envName,
 		chartUnpacked,
@@ -120,20 +179,13 @@ func RenderEnv(envName string, remoteChartURL string, chartTag string, ifUseLoca
 	if err != nil {
 		return fmt.Errorf("helm template failed: %w", err)
 	}
-	if err := os.WriteFile(helmOut, out, 0644); err != nil {
-		return err
-	}
-	// 清理
-	// _ = os.Remove(chartsDir)
+
+	return os.WriteFile(helmOut, out, 0644)
+}
+
+// cleanupChartsDir 清理 charts 目录
+func cleanupChartsDir(chartsDir string) {
 	_ = os.RemoveAll(chartsDir)
-
-	if kustExist {
-		if err := renderKustomize(envDir, chartName, renderFileName); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // renderKustomize 渲染 kustomize 配置
